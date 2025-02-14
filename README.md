@@ -52,7 +52,7 @@ vector --config file-in-file-out/vector.toml
 
 ## Repository Structure
 ```
-learning-vector.dev/
+Vector.dev/
 ├── console-in-console-out/
 │   └── vector.toml
 ├── extract-raw-demo-syslog/
