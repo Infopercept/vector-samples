@@ -1,0 +1,12 @@
+[sources.file_source]
+type = "file"
+include = [
+    "sample-input.txt"
+]
+start_at_beginning = true 
+
+[sinks.file_sink]
+type = "file"
+inputs = ["file_source"]
+path = "output.txt"
+encoding.codec = "text"

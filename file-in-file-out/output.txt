@@ -1,0 +1,1 @@
+No input is required as this is console based input pipeline.
