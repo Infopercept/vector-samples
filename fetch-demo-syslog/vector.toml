@@ -1,0 +1,20 @@
+[sources.raw_syslog]
+  type = "file"
+  include = ["raw_demo_syslog.log"]
+  start_at_beginning = true  
+
+[transforms.remap_syslog]
+  inputs = ["raw_syslog"]
+  type = "remap"
+  source = '''
+    structured = parse_syslog!(.message)
+    . = merge(., structured)
+  '''
+
+[sinks.parsed_syslog]
+  inputs = ["remap_syslog"]
+  type = "file"
+  path = "parsed_syslog.json"
+
+[sinks.parsed_syslog.encoding]
+  codec = "json"
