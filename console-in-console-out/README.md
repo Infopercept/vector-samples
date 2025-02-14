@@ -9,7 +9,7 @@ This is a simple demonstration of Vector.dev using stdin as input and console as
 
 ## Configuration
 
-The `hello.toml` configuration file sets up:
+The `vector.toml` configuration file sets up:
 - A stdin source that accepts input from terminal
 - A console sink that outputs the data to terminal
 
@@ -17,7 +17,7 @@ The `hello.toml` configuration file sets up:
 
 1. Start Vector with the configuration:
 ```bash
-vector --config hello.toml
+vector --config vector.toml
 ```
 
 2. Type any text in the terminal and press Enter
@@ -29,7 +29,7 @@ vector --config hello.toml
 ## Example
 
 ```bash
-$ vector --config hello.toml
+$ vector --config vector.toml
 hello world
 hello world
 this is a test
