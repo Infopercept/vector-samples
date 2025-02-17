@@ -22,7 +22,7 @@ This example demonstrates how to use Vector Remap Language (VRL) to transform JS
 Run this transformation using Vector:
 
 ```bash
-vector --config vector.toml
+vector vrl --input input.json --program program.vrl --print-object > output.json
 ```
 
 ## Example Input/Output
