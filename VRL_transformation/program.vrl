@@ -1,0 +1,20 @@
+# Remove some fields
+del(.foo)
+
+# Generate a real-time timestamp and store it as a formatted string
+.timestamp_str = now()
+.timestamp = format_timestamp!(.timestamp_str, format: "%Y-%m-%dT%H:%M:%SZ")
+
+# Remove the temporary timestamp field
+del(.timestamp_str)
+
+# Parse HTTP status code into a local variable
+http_status_code = parse_int!(.http_status)
+del(.http_status)
+
+# Add status
+if http_status_code >= 200 && http_status_code <= 299 {
+    .status = "success"
+} else {
+    .status = "error"
+}
