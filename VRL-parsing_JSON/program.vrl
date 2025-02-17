@@ -1,0 +1,25 @@
+# Parse the raw string into a JSON object, this way we can manipulate fields.
+. = parse_json!(string!(.message))
+
+# Try to parse the timestamp field
+parsed_timestamp, err = parse_timestamp(.timestamp, format: "%Y-%m-%dT%H:%M:%S.%fZ")
+
+if err == null {
+   # Convert parsed timestamp to Unix timestamp
+   .timestamp = to_unix_timestamp(parsed_timestamp)
+  
+} else {
+   # Use current timestamp if parsing fails
+   now_ts = now()
+   .timestamp = to_unix_timestamp(now_ts)
+   .timestamp_str = format_timestamp!(now_ts, format: "%Y-%m-%dT%H:%M:%SZ")
+}
+
+.timestamp_str = format_timestamp!(parsed_timestamp, format: "%Y-%m-%dT%H:%M:%SZ")
+
+# Remove the `username` field from the final output.
+del(.username)
+
+# Convert the `message` to lowercase.
+.message = downcase(string!(.message))
+
