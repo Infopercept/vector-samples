@@ -50,9 +50,37 @@ vector --config file-in-file-out/vector.toml
 - Processes data
 - Writes to output file
 
+### 6. VRL JSON Parsing (VRL-parsing_JSON)
+Demonstrates parsing and transforming nested JSON data using VRL.
+
+#### Features
+- Parses nested JSON strings
+- Handles timestamp parsing and formatting
+- Field transformations and removal
+- Case conversion
+
+#### Example Usage
+```bash
+vector vrl --input input.json --program program.vrl --print-object > output.json
+```
+
+### 7. VRL Transformation (VRL_transformation)
+Shows basic data transformation capabilities using VRL.
+
+#### Features
+- Field removal and addition
+- Timestamp generation
+- HTTP status code parsing
+- Status field mapping
+
+#### Example Usage
+```bash
+vector --config vector.toml
+```
+
 ## Repository Structure
 ```
-Vector.dev/
+learning-vector.dev/
 ├── console-in-console-out/
 │   └── vector.toml
 ├── extract-raw-demo-syslog/
@@ -64,6 +92,16 @@ Vector.dev/
 │   └── README.md
 ├── file-in-file-out/
 │   └── vector.toml
+├── VRL-parsing_JSON/
+│   ├── input.json
+│   ├── program.vrl
+│   ├── output.json
+│   └── README.md
+├── VRL_transformation/
+│   ├── input.json
+│   ├── program.vrl
+│   ├── output.json
+│   └── README.md
 └── README.md
 ```
 
@@ -86,6 +124,20 @@ Vector.dev/
    vector --config <configuration-file>.toml
    ```
 
+### Running VRL Examples
+
+For VRL-specific examples, you can use either of these methods:
+
+1. Using VRL CLI tool:
+   ```bash
+   vector vrl --input input.json --program program.vrl --print-object > output.json
+   ```
+
+2. Using Vector configuration:
+   ```bash
+   vector --config vector.toml
+   ```
+
 ## Configuration Details
 
 Each directory contains:
@@ -100,6 +152,8 @@ Each directory contains:
 3. **Demo Syslog**: Advanced syslog parsing
 4. **System Syslog**: Production system monitoring
 5. **File Operations**: Batch data processing
+6. **VRL JSON Parsing**: Complex JSON transformation and nested JSON handling
+7. **VRL Basic Transformation**: Field manipulation and status code mapping
 
 For more information about Vector, visit [vector.dev](https://vector.dev)
 
