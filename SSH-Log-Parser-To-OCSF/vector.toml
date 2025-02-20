@@ -1,0 +1,77 @@
+[sources.auth_logs]
+type = "file"
+include = ["ssh.log"]
+start_at_beginning = true  
+
+[transforms.sshd_success]
+  type = "remap"
+  inputs = ["auth_logs"]
+  source = '''
+  .message = string!(.message)
+
+  # Parse using built-in function
+  parsed = parse_linux_authorization!(.message)
+  if parsed != null {
+    . = parsed
+  }
+
+  # Extract fields using regex
+  extracted = parse_regex!(.message, r'^(?P<action>\w+)\s+(?P<auth_method>\w+)\s+for\s+(?P<user>\S+)\s+from\s+(?P<ip>\d+\.\d+\.\d+\.\d+)\s+port\s+(?P<port>\d+)\s+(?P<protocol>\S+):\s+(?P<key_type>\S+)\s+(?P<fingerprint>\S+)$')
+  . = merge(., extracted)
+
+  # Convert port from string to integer
+  .port = to_int!(.port)
+
+  # Categorize the event based on the extracted action
+  if .action == "Accepted" {
+    .status = "success"
+    .severity = "info"
+  } else {
+    .status = "failure"
+    .severity = "error"
+  }
+
+  # Remap SSH login event to OCSF format
+  .ocsf = {
+    "event": {
+      "category": "authentication",
+      "type": "user_login",
+      "action": "login",
+      "outcome": .status,
+      "timestamp": .timestamp
+    },
+    "user": {
+      "name": .user
+    },
+    "source": {
+      "ip": .ip,
+      "port": .port
+    },
+    "destination": {
+      "hostname": .hostname
+    },
+    "network": {
+      "protocol": .protocol
+    },
+    "authentication": {
+      "method": .auth_method,
+      "key_type": .key_type,
+      "fingerprint": .fingerprint
+    },
+    "process": {
+      "id": .procid,
+      "name": .appname
+    },
+    "message": .message
+  }
+  
+  . = .ocsf
+  '''
+
+[sinks.parsed_ssh]
+  inputs = ["sshd_success"]
+  type = "file"
+  path = "vector_parsed_log.json"
+
+[sinks.parsed_ssh.encoding]
+  codec = "json"
