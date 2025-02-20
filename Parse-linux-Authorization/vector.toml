@@ -1,0 +1,22 @@
+[sources.auth_logs]
+type = "file"
+include = ["/home/jayasudha/Desktop/learning-vector.dev/Parse-linux-Authorization/ssh.log"]
+start_at_beginning = true  
+
+[transforms.parse_auth_logs]
+type = "remap"
+inputs = ["auth_logs"]
+source = '''
+parsed = parse_linux_authorization!(.message)
+if parsed != null {
+  . = parsed
+}
+'''
+
+[sinks.parsed_syslog]
+  inputs = ["parse_auth_logs"]
+  type = "file"
+  path = "vector_parsed_log.json"
+
+[sinks.parsed_syslog.encoding]
+  codec = "json"
