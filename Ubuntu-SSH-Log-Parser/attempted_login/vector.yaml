@@ -1,0 +1,39 @@
+data_dir: "/var/lib/vector"
+
+sources:
+  auth_logs:
+    type: "file"
+    include:
+      - "auth.log" 
+    start_at_beginning: true
+
+transforms:
+  parse_nologin:
+    type: "remap"
+    inputs:
+      - "auth_logs"
+    source: |
+      parsed = parse_regex!(
+        .message,
+        r'^(?P<timestamp>\w+\s+\d+\s+\d+:\d+:\d+)\s+(?P<hostname>\S+)\s+(?P<program>\S+):\s+Attempted login by\s+(?P<username>\S+)\s+\(UID:\s+(?P<uid>\d+)\)\s+on\s+(?P<tty>\S+)$'
+      )
+      
+      .timestamp   = parsed.timestamp
+      .hostname    = parsed.hostname
+      .program     = parsed.program
+      .appname     = parsed.program
+      .username    = parsed.username
+      .user_uid    = to_int!(parsed.uid)
+      .tty         = parsed.tty
+      .event_type  = "attempted_login"
+
+      del(.file)
+
+sinks:
+  output:
+    type: "file"
+    inputs:
+      - "parse_nologin"
+    path: "vector_parsed_nologin.json"
+    encoding:
+      codec: "json"

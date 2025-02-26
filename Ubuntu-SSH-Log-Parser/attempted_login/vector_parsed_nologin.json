@@ -1,0 +1,1 @@
+{"appname":"nologin","event_type":"attempted_login","host":"localhost.localdomain","hostname":"mihir-ubuntu","message":"Feb 20 10:42:06 mihir-ubuntu nologin: Attempted login by test (UID: 1001) on /dev/pts/1","program":"nologin","source_type":"file","timestamp":"Feb 20 10:42:06","tty":"/dev/pts/1","user_uid":1001,"username":"test"}
