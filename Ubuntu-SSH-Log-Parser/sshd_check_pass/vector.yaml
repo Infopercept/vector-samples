@@ -1,0 +1,39 @@
+data_dir: "/var/lib/vector"
+
+sources:
+  auth_logs:
+    type: file
+    include:
+      - "auth.log"
+    start_at_beginning: true
+
+transforms:
+  parse_pam_unix:
+    type: remap
+    inputs:
+      - "auth_logs"
+    source: |
+      parsed = parse_regex!(.message, r'^(?P<timestamp>\w+\s+\d+\s+\d+:\d+:\d+)\s+(?P<hostname>\S+)\s+(?P<program>\S+)\[(?P<pid>\d+)\]:\s+(?P<pam_module>\S+)\((?P<pam_details>[^)]+)\):\s+(?P<msg>.+)$')
+      if parsed != null {
+        .timestamp   = parsed.timestamp
+        .hostname    = parsed.hostname
+        .program     = parsed.program
+        .appname     = parsed.program
+        .pid         = to_int!(parsed.pid)
+        .pam_module  = parsed.pam_module
+        .pam_activity = parsed.pam_details
+        .reason         = parsed.msg
+        .event_type  = "pam_unix_check_pass"
+      } else {
+        log("Failed to parse pam_unix log", level: "error")
+      }
+      del(.file)
+
+sinks:
+  output:
+    type: file
+    inputs:
+      - "parse_pam_unix"
+    path: "vector_parsed_log.json"
+    encoding:
+      codec: json

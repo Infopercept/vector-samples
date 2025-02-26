@@ -1,0 +1,1 @@
+{"appname":"sshd","event_type":"pam_unix_check_pass","host":"localhost.localdomain","hostname":"mihir-ubuntu","message":"Feb 20 10:48:24 mihir-ubuntu sshd[15112]: pam_unix(sshd:auth): check pass; user unknown","pam_activity":"sshd:auth","pam_module":"pam_unix","pid":15112,"program":"sshd","reason":"check pass; user unknown","source_type":"file","timestamp":"Feb 20 10:48:24"}
