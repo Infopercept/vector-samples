@@ -1,0 +1,47 @@
+data_dir: "/var/lib/vector"
+ 
+sources:
+  auth_logs:
+    type: "file"
+    include:
+      - "auth.log"
+    start_at_beginning: true
+ 
+transforms:
+  parse_ssh_log:
+    type: "remap"
+    inputs:
+      - "auth_logs"
+    source: |
+      # Parse the entire log entry in one step
+      log_details = parse_regex!(.message, r'^(?P<timestamp>\w+\s+\d+\s+\d+:\d+:\d+)\s+(?P<hostname>\S+)\s+(?P<program>\S+)\[(?P<pid>\d+)\]:\s+(?P<auth_method>Accepted password|Failed password)?\s*(for\s+(?P<username>\S+)\s+from\s+(?P<source_ip>[\d\.]+)\s+port\s+(?P<port>\d+)\s+(?P<protocol>\S+))?$')
+ 
+      if log_details != null {
+        .timestamp = log_details.timestamp
+        .hostname = log_details.hostname
+        .program = log_details.program
+        .pid = to_int!(log_details.pid)
+        .appname = log_details.program
+        .event_type = log_details.auth_method
+        .username = log_details.username
+        .source_ip = log_details.source_ip
+        .port = to_int!(log_details.port)
+        .protocol = log_details.protocol
+ 
+        # If auth_method is null, store the raw message in message_details
+        if log_details.auth_method == null {
+          .message_details = replace!(.message, r'^[^\]]+\]:\s+', "")
+        }
+      }
+ 
+      # Remove the "file" field from the event.
+      del(.file)
+ 
+sinks:
+  parsed_ssh_log:
+    inputs:
+      - "parse_ssh_log"
+    type: "file"
+    path: "vector_parsed_log.json"
+    encoding:
+      codec: "json"
