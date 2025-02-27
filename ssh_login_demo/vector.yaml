@@ -1,0 +1,54 @@
+sources:
+  auth_logs:
+    type: file
+    include:
+      - "/home/jayasudha/Desktop/learning-vector.dev/ssh_login_demo/auth.log"
+    read_from: beginning
+    ignore_checkpoints: true
+
+transforms:
+  parse_auth_log:
+    type: remap
+    inputs:
+      - auth_logs
+    source: |
+      .message = to_string(.message) ?? "";
+      if contains(.message, "Failed password") {
+        .event = { "category": "authentication", "name": "failed password" };
+        .context = parse_regex!(.message, r'Failed password for (invalid user )?(?P<username>\w+) from (?P<ip_address>[\d.]+) port (?P<port>\d+) (?P<protocol>\w+)');
+        .failed_attempts = 1;
+      } else {
+        abort;
+      }
+
+  aggregate_failed_logins:
+    type: reduce
+    inputs:
+      - parse_auth_log
+    group_by:
+      - context.username
+      - context.ip_address
+    expire_after_ms: 60000
+    max_events: 1000
+    merge_strategies:
+      failed_attempts: sum
+
+  detect_brute_force:
+    type: remap
+    inputs:
+      - aggregate_failed_logins
+    source: |
+      if (to_int(.failed_attempts) ?? 0) >= 3 {
+        .alert, _ = "Suspicious activity: " + .context.username + " from " + .context.ip_address + " failed login " + to_string(.failed_attempts) + " times";
+      } else {
+        abort;
+      }
+
+sinks:
+  file_sink:
+    type: file
+    inputs:
+      - detect_brute_force
+    path: ssh_alerts.json
+    encoding:
+      codec: json
