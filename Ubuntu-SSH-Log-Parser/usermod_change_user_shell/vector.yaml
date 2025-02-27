@@ -1,0 +1,38 @@
+data_dir: "/var/lib/vector"
+
+sources:
+  auth_logs:
+    type: "file"
+    include:
+      - "auth.log"  
+    start_at_beginning: true
+
+transforms:
+  parse_usermod:
+    type: "remap"
+    inputs:
+      - "auth_logs"
+    source: |
+      pattern = r'^(?P<timestamp>\w+\s+\d+\s+\d+:\d+:\d+)\s+(?P<hostname>\S+)\s+(?P<program>\w+)\[(?P<pid>\d+)\]:\s+change user\s+\'(?P<user>[^\']+)\'\s+shell from\s+\'(?P<old_shell>[^\']+)\'\s+to\s+\'(?P<new_shell>[^\']+)\'$'
+      parsed = parse_regex!(.message, pattern)
+      
+      .timestamp   = parsed.timestamp
+      .hostname    = parsed.hostname
+      .program     = parsed.program
+      .appname     = parsed.program
+      .pid         = to_int!(parsed.pid)
+      .user        = parsed.user
+      .old_shell   = parsed.old_shell
+      .new_shell   = parsed.new_shell
+      .event_type  = "usermod_change_user_shell"
+      
+      del(.file)
+
+sinks:
+  output:
+    type: "file"
+    inputs:
+      - "parse_usermod"
+    path: "vector_parsed_usermod.json"
+    encoding:
+      codec: "json"
