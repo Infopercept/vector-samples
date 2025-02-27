@@ -1,0 +1,47 @@
+data_dir: "/var/lib/vector"
+
+sources:
+  auth_logs:
+    type: "file"
+    include:
+      - "auth.log"
+    start_at_beginning: true
+
+transforms:
+  parse_sudo:
+    type: "remap"
+    inputs:
+      - "auth_logs"
+    source: |
+      # This regex uses alternation:
+      # - The first alternative matches when the COMMAND contains a usermod invocation.
+      #   It captures the entire command as `command1` and also extracts the affected_user.
+      # - The second alternative matches any other command as `command2`.
+      pattern = r'^(?P<timestamp>\w+\s+\d+ \d+:\d+:\d+)\s+(?P<hostname>\S+)\s+sudo:\s+(?P<username>\S+)\s+:\s+TTY=(?P<tty>\S+)\s+;\s+PWD=(?P<pwd>\S+)\s+;\s+USER=(?P<target_user>\S+)\s+;\s+COMMAND=(?:(?P<command1>.*usermod\s+-s\s+\S+\s+(?P<affected_user>\S+).*)|(?P<command2>.*))$'
+      parsed = parse_regex!(.message, pattern)
+      
+      .timestamp    = parsed.timestamp
+      .hostname     = parsed.hostname
+      .program      = "sudo"
+      .appname      = "sudo"
+      .username     = parsed.username
+      .tty          = parsed.tty
+      .pwd          = parsed.pwd
+      .target_user  = parsed.target_user
+      .command      = if exists(parsed.command1) && parsed.command1 != "" { parsed.command1 } else { parsed.command2 }
+      .event_type   = "sudo_command_executed"
+      
+      if exists(parsed.affected_user) && parsed.affected_user != "" {
+        .affected_user = parsed.affected_user
+      }
+      
+      del(.file)
+
+sinks:
+  output:
+    type: "file"
+    inputs:
+      - "parse_sudo"
+    path: "vector_parsed_sudo.json"
+    encoding:
+      codec: "json"
