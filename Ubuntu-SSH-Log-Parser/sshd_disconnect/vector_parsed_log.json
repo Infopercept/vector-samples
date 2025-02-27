@@ -1,0 +1,1 @@
+{"appname":"sshd","disconnect_ip":"192.168.186.1","event_type":"Disconnected","host":"localhost.localdomain","hostname":"mihir-ubuntu","message":"Feb 20 10:41:47 mihir-ubuntu sshd[3154]: Disconnected from user test 192.168.186.1 port 62721","pid":3154,"port":62721,"program":"sshd","source_type":"file","timestamp":"Feb 20 10:41:47","username":"test"}
