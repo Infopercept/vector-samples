@@ -1,0 +1,39 @@
+data_dir: "/var/lib/vector"
+
+sources:
+  auth_logs:
+    type: file
+    include:
+      - "auth.log"
+    start_at_beginning: true
+
+transforms:
+  parse_invalid_user:
+    type: remap
+    inputs:
+      - "auth_logs"
+    source: |
+      parsed = parse_regex!(.message, r'^(?P<timestamp>\w+\s+\d+\s+\d+:\d+:\d+)\s+(?P<hostname>\S+)\s+(?P<program>\S+)\[(?P<pid>\d+)\]:\s+Invalid user\s+(?P<username>\S+)\s+from\s+(?P<source_ip>[\d\.]+)\s+port\s+(?P<port>\d+)$')
+      if parsed != null {
+        .timestamp   = parsed.timestamp
+        .hostname    = parsed.hostname
+        .program     = parsed.program
+        .appname     = parsed.program
+        .pid         = to_int!(parsed.pid)
+        .username    = parsed.username
+        .source_ip   = parsed.source_ip
+        .port        = to_int!(parsed.port)
+        .event_type  = "invalid_user"
+      } else {
+        log("Failed to parse invalid user log", level: "error")
+      }
+      del(.file)
+
+sinks:
+  output:
+    type: file
+    inputs:
+      - "parse_invalid_user"
+    path: "vector_parsed_invalid_user.json"
+    encoding:
+      codec: json
