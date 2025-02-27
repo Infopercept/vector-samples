@@ -1,0 +1,1 @@
+{"appname":"sshd","event_type":"server_listening_ipv4","host":"localhost.localdomain","hostname":"mihir-ubuntu","ipv_version":"IPv4","message":"Feb 20 10:46:08 mihir-ubuntu sshd[3631]: Server listening on 0.0.0.0 port 22.","pid":3631,"port":22,"program":"sshd","source_ip":"0.0.0.0","source_type":"file","timestamp":"Feb 20 10:46:08"}

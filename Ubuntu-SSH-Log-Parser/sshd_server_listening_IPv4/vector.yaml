@@ -1,0 +1,39 @@
+data_dir: "/var/lib/vector"
+
+sources:
+  server_logs:
+    type: file
+    include:
+      - "auth.log"
+    start_at_beginning: true
+
+transforms:
+  parse_ipv4:
+    type: remap
+    inputs:
+      - server_logs
+    source: |
+      parsed = parse_regex!(.message, r'^(?P<timestamp>\w+\s+\d+\s+\d+:\d+:\d+)\s+(?P<hostname>\S+)\s+(?P<program>\S+)\[(?P<pid>\d+)\]:\s+Server listening on (?P<ip>\d{1,3}(?:\.\d{1,3}){3}) port (?P<port>\d+)\.$')
+      if parsed != null {
+        .timestamp  = parsed.timestamp
+        .hostname   = parsed.hostname
+        .program    = parsed.program
+        .appname    = parsed.program
+        .pid        = to_int!(parsed.pid)
+        .source_ip         = parsed.ip
+        .port       = to_int!(parsed.port)
+        .event_type = "server_listening_ipv4"
+        .ipv_version = "IPv4"
+        del(.file)
+      } else {
+        log("Failed to parse IPv4 log", level: "error")
+      }
+
+sinks:
+  ipv4_output:
+    type: file
+    inputs:
+      - parse_ipv4
+    path: "vector_parsed_ipv4.json"
+    encoding:
+      codec: json
