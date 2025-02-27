@@ -16,7 +16,7 @@ Ubuntu-SSH-Log-Parser/
 │   ├── vector_parsed_log.json
 │   └── README.md
 ├── sshd_accepted_password/
-├── sshd_authentication_failure
+├── sshd_authentication_failure/
 ├── sshd_check_pass/
 ├── sshd_disconnect/
 ├── sshd_invalid_user/
