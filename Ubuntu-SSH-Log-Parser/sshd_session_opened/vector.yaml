@@ -1,0 +1,42 @@
+data_dir: "/var/lib/vector"
+
+sources:
+  auth_logs:
+    type: "file"
+    include:
+      - "auth.log"
+    start_at_beginning: true
+
+transforms:
+  parse_auth_logs:
+    type: "remap"
+    inputs:
+      - "auth_logs"
+    source: |
+      parsed = parse_regex!(
+        .message,
+        r'^(?P<timestamp>\w+\s+\d+\s+\d+:\d+:\d+)\s+(?P<hostname>\S+)\s+(?P<appname>\S+)\[(?P<pid>\d+)\]:\s+(?P<pam_module>\S+)\((?P<pam_activity>[^)]+)\):\s+(?P<event_type>session opened) for user (?P<username>\S+)\(uid=(?P<target_uid>\d+)\)\s+by\s+\(uid=(?P<actor_uid>\d+)\)$'
+      )
+      
+      .timestamp    = parsed.timestamp
+      .hostname     = parsed.hostname
+      .appname      = parsed.appname
+      .program      = parsed.appname
+      .pid          = to_int!(parsed.pid)
+      .pam_module   = parsed.pam_module
+      .pam_activity = parsed.pam_activity
+      .event_type   = parsed.event_type
+      .username     = parsed.username
+      .target_uid   = to_int!(parsed.target_uid)
+      .actor_uid    = to_int!(parsed.actor_uid)
+      
+      del(.file)
+
+sinks:
+  parsed_syslog:
+    type: "file"
+    inputs:
+      - "parse_auth_logs"
+    path: "vector_parsed_log.json"
+    encoding:
+      codec: "json"
