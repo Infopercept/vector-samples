@@ -1,0 +1,1 @@
+Feb 20 10:41:42 mihir-ubuntu systemd: pam_unix(systemd-user:session): session opened for user test(uid=1001) by (uid=0)

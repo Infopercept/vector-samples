@@ -1,0 +1,46 @@
+data_dir: "/var/lib/vector"
+
+sources:
+  auth_logs:
+    type: "file"
+    include:
+      - "auth.log"
+    start_at_beginning: true
+
+transforms:
+  parse_systemd_session_opened:
+    type: "remap"
+    inputs:
+      - auth_logs
+    source: |
+      # Combined regex to parse syslog header and PAM details.
+      pattern = r'^(?P<timestamp>\w+\s+\d+\s+\d+:\d+:\d+)\s+(?P<hostname>\S+)\s+(?P<program>\S+):\s+(?:(?P<pam_module>\S+)\((?P<pam_activity>[^)]+)\):\s+(?P<event>session opened)\s+for\s+user\s+(?P<username>\S+)\(uid=(?P<target_uid>\d+)\)\s+by\s+\(uid=(?P<actor_uid>\d+)\)|(?P<log_message>.*))$'
+      parsed = parse_regex!(.message, pattern)
+
+      .timestamp = parsed.timestamp
+      .hostname = parsed.hostname
+      .program = parsed.program
+      .appname = parsed.program
+
+      if parsed.event != null {
+        .pam_module = parsed.pam_module
+        .pam_activity = parsed.pam_activity
+        .event_type = parsed.event
+        .username = parsed.username
+        .target_uid = to_int!(parsed.target_uid)
+        .actor_uid = to_int!(parsed.actor_uid)
+      } else {
+        .log_details = parsed.log_message
+      }
+
+      # Remove the automatically added "file" field.
+      del(.file)
+
+sinks:
+  parsed_systemd_session_opened:
+    type: "file"
+    inputs:
+      - parse_systemd_session_opened
+    path: "vector_parsed_systemd_session_opened.json"
+    encoding:
+      codec: "json"
