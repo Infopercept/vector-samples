@@ -1,0 +1,45 @@
+data_dir: "/var/lib/vector"
+
+sources:
+  auth_logs:
+    type: file
+    include:
+      - "auth.log"
+    start_at_beginning: true
+
+transforms:
+  parse_auth_failure:
+    type: remap
+    inputs:
+      - auth_logs
+    source: |
+      parsed = parse_regex!(.message, r'^(?P<timestamp>\w+\s+\d+\s+\d+:\d+:\d+)\s+(?P<hostname>\S+)\s+(?P<program>\S+)\[(?P<pid>\d+)\]:\s+(?P<pam_module>\S+)\((?P<pam_details>[^)]+)\):\s+(?P<failure>authentication failure);\s+logname=(?P<logname>\S*)\s+uid=(?P<uid>\d+)\s+euid=(?P<euid>\d+)\s+tty=(?P<tty>\S+)\s+ruser=(?P<ruser>\S*)\s+rhost=(?P<rhost>[\d\.]+)$')
+      if parsed != null {
+        .timestamp   = parsed.timestamp
+        .hostname    = parsed.hostname
+        .program     = parsed.program
+        .appname     = parsed.program
+        .pid         = to_int!(parsed.pid)
+        .pam_module  = parsed.pam_module
+        .pam_details = parsed.pam_details
+        .reason     = parsed.failure
+        .logname     = parsed.logname
+        .uid         = to_int!(parsed.uid)
+        .euid        = to_int!(parsed.euid)
+        .tty         = parsed.tty
+        .ruser       = parsed.ruser
+        .rhost       = parsed.rhost
+        .event_type  = "pam_unix_authentication_failure"
+      } else {
+        log("Failed to parse authentication failure log", level: "error")
+      }
+      del(.file)
+
+sinks:
+  output:
+    type: file
+    inputs:
+      - parse_auth_failure
+    path: "vector_parsed_auth_failure.json"
+    encoding:
+      codec: json
