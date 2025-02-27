@@ -16,15 +16,23 @@ Ubuntu-SSH-Log-Parser/
 │   ├── vector_parsed_log.json
 │   └── README.md
 ├── sshd_accepted_password/
-│   ├── vector.yaml
-│   ├── auth.log
-│   ├── vector_parsed_log.json
-│   └── README.md
-├── ssh_check_pass/
-│   ├── vector.yaml
-│   ├── auth.log
-│   ├── vector_parsed_log.json
-│   └── README.md
+├── sshd_check_pass/
+├── sshd_disconnect/
+├── sshd_invalid_user/
+├── sshd_recieved_disconnect/
+├── sshd_server_listening_IPv4/
+├── sshd_server_listening_IPv6/
+├── sshd_session_closed/
+├── sshd_session_opened/
+├── sshd_terminating/
+├── sudo_command_executed/
+├── sudo_session_closed/
+├── sudo_session_opened/
+├── systemd_new_session/
+├── systemd_session_logged_out/
+├── systemd_session_opened/
+├── systemd_session_removed/
+├── usermod_change_user_shell/
 └── README.md
 ```
 
