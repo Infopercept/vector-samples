@@ -1,0 +1,1 @@
+{"appname":"sshd","event_type":"session closed","host":"localhost.localdomain","hostname":"mihir-ubuntu","message":"Feb 20 10:41:47 mihir-ubuntu sshd[3087]: pam_unix(sshd:session): session closed for user test","pam_activity":"sshd:session","pam_module":"pam_unix","pid":3087,"program":"sshd","source_type":"file","timestamp":"Feb 20 10:41:47","username":"test"}
