@@ -1,0 +1,1 @@
+{"appname":"systemd-logind","event_type":"session_removed","host":"localhost.localdomain","hostname":"mihir-ubuntu","message":"Feb 20 10:41:47 mihir-ubuntu systemd-logind[1142]: Removed session 7.","pid":1142,"program":"systemd-logind","session_id":7,"source_type":"file","timestamp":"Feb 20 10:41:47"}
