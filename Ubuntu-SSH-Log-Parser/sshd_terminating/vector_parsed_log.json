@@ -1,0 +1,1 @@
+{"appname":"sshd","event_type":"ssh_signal","host":"localhost.localdomain","hostname":"mihir-ubuntu","message":"Feb 20 10:46:08 mihir-ubuntu sshd[2998]: Received signal 15; terminating.","pid":2998,"program":"sshd","reason":"terminating.","signal":15,"source_type":"file","timestamp":"Feb 20 10:46:08"}
