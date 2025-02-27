@@ -1,0 +1,1 @@
+{"appname":"systemd-logind","event_type":"session_logged_out","host":"localhost.localdomain","hostname":"mihir-ubuntu","message":"Feb 20 10:41:47 mihir-ubuntu systemd-logind[1142]: Session 7 logged out. Waiting for processes to exit.","pid":1142,"program":"systemd-logind","session_id":7,"source_type":"file","timestamp":"Feb 20 10:41:47"}
