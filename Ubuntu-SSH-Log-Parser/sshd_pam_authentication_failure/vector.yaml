@@ -1,0 +1,48 @@
+data_dir: "/var/lib/vector"
+
+sources:
+  auth_logs:
+    type: "file"
+    include:
+      - "auth.log"
+    start_at_beginning: true
+
+transforms:
+  parse_auth_failure:
+    type: "remap"
+    inputs:
+      - "auth_logs"
+    source: |
+      # Regex pattern to parse PAM authentication failure logs.
+      # It allows for both singular and plural "failure(s)" and
+      # optionally captures an extra "user" field.
+      pattern = r'^(?P<timestamp>\w+\s+\d+\s+\d+:\d+:\d+)\s+(?P<hostname>\S+)\s+(?P<program>\S+)\[(?P<pid>\d+)\]:\s+(?P<event>PAM\s+\d+\s+more\s+authentication\s+failures?);\s+logname=(?P<logname>\S*)\s+uid=(?P<uid>\d+)\s+euid=(?P<euid>\d+)\s+tty=(?P<tty>\S+)\s+ruser=(?P<ruser>\S*)\s+rhost=(?P<rhost>[\d\.]+)(?:\s+user=(?P<user>\S+))?$'
+      parsed = parse_regex!(.message, pattern)
+      
+      .timestamp = parsed.timestamp
+      .hostname = parsed.hostname
+      .program = parsed.program
+      .appname = parsed.program
+      .pid = to_int!(parsed.pid)
+      
+      .event = parsed.event
+      .logname = parsed.logname
+      .uid = to_int!(parsed.uid)
+      .euid = to_int!(parsed.euid)
+      .tty = parsed.tty
+      .ruser = parsed.ruser
+      .rhost = parsed.rhost
+      
+      # Optionally capture the "user" field if it exists
+      if parsed.user != null {
+        .user = parsed.user
+      }
+
+sinks:
+  output:
+    type: "file"
+    inputs:
+      - "parse_auth_failure"
+    path: "vector_parsed_log.json"
+    encoding:
+      codec: "json"
