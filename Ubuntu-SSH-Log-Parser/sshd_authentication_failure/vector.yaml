@@ -13,7 +13,7 @@ transforms:
     inputs:
       - auth_logs
     source: |
-      parsed = parse_regex!(.message, r'^(?P<timestamp>\w+\s+\d+\s+\d+:\d+:\d+)\s+(?P<hostname>\S+)\s+(?P<program>\S+)\[(?P<pid>\d+)\]:\s+(?P<pam_module>\S+)\((?P<pam_details>[^)]+)\):\s+(?P<failure>authentication failure);\s+logname=(?P<logname>\S*)\s+uid=(?P<uid>\d+)\s+euid=(?P<euid>\d+)\s+tty=(?P<tty>\S+)\s+ruser=(?P<ruser>\S*)\s+rhost=(?P<rhost>[\d\.]+)$')
+      parsed = parse_regex!(.message, r'^(?P<timestamp>\w+\s+\d+\s+\d+:\d+:\d+)\s+(?P<hostname>\S+)\s+(?P<program>\S+)\[(?P<pid>\d+)\]:\s+(?P<pam_module>\S+)\((?P<pam_details>[^)]+)\):\s+(?P<failure>authentication failure);\s+logname=(?P<logname>\S*)\s+uid=(?P<uid>\d+)\s+euid=(?P<euid>\d+)\s+tty=(?P<tty>\S+)\s+ruser=(?P<ruser>\S*)\s+rhost=(?P<rhost>[\d\.]+)(?:\s+user=(?P<user>\S+))?$')
       if parsed != null {
         .timestamp   = parsed.timestamp
         .hostname    = parsed.hostname
@@ -22,7 +22,7 @@ transforms:
         .pid         = to_int!(parsed.pid)
         .pam_module  = parsed.pam_module
         .pam_details = parsed.pam_details
-        .reason     = parsed.failure
+        .reason      = parsed.failure
         .logname     = parsed.logname
         .uid         = to_int!(parsed.uid)
         .euid        = to_int!(parsed.euid)
@@ -30,6 +30,9 @@ transforms:
         .ruser       = parsed.ruser
         .rhost       = parsed.rhost
         .event_type  = "pam_unix_authentication_failure"
+        if parsed.user != null {
+          .user = parsed.user
+        }
       } else {
         log("Failed to parse authentication failure log", level: "error")
       }
