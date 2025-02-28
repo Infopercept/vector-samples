@@ -1,0 +1,44 @@
+data_dir: "/var/lib/vector"
+
+sources:
+  auth_logs:
+    type: file
+    include:
+      - "auth.log"
+    start_at_beginning: true
+
+transforms:
+  parse_repeated_message:
+    type: remap
+    inputs:
+      - auth_logs
+    source: |
+      # Single regex that captures both the outer repeated message details
+      # and the inner log details.
+      parsed = parse_regex!(.message, r'^(?P<timestamp>\w+\s+\d+\s+\d+:\d+:\d+)\s+(?P<hostname>\S+)\s+(?P<program>\S+)\[(?P<pid>\d+)\]:\s+message repeated\s+(?P<repeat>\d+)\s+times:\s+\[\s*(?P<reason>Failed password)\s+for\s+(?P<username>\S+)\s+from\s+(?P<source_ip>[\d\.]+)\s+port\s+(?P<port>\d+)\s+(?P<protocol>\S+)\s*\]$')
+      if parsed != null {
+        .timestamp  = parsed.timestamp
+        .hostname   = parsed.hostname
+        .program    = parsed.program
+        .app_name   = parsed.program
+        .pid        = to_int!(parsed.pid)
+        .repeat_times     = to_int!(parsed.repeat)
+        .reason     = parsed.reason      # Will be "Failed password"
+        .username   = parsed.username
+        .source_ip  = parsed.source_ip
+        .port       = to_int!(parsed.port)
+        .protocol   = parsed.protocol
+        .event_type = "Failed password repeated"
+      } else {
+        log("Failed to parse repeated message log", level: "error")
+      }
+      del(.file)
+
+sinks:
+  output:
+    type: file
+    inputs:
+      - parse_repeated_message
+    path: "vector_parsed_repeated_message.json"
+    encoding:
+      codec: json
