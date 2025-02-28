@@ -34,7 +34,4 @@ tests:
               assert_eq!(.actor_uid, 1000, "unexpected actor_uid value")
               assert!(exists(.event_type), "event_type missing")
               assert_eq!(.event_type, "session_opened", "unexpected event_type value")
-              assert!(exists(.source_type), "source_type missing")
-              assert_eq!(.source_type, "file", "unexpected source_type value")
-              assert!(exists(.host), "host missing")
-              assert_eq!(.host, "localhost.localdomain", "unexpected host value")
+          

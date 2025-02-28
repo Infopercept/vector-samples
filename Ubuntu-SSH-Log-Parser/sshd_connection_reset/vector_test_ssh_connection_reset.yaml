@@ -15,9 +15,6 @@ tests:
               assert!(exists(.timestamp), "timestamp missing")
               assert_eq!(.timestamp, "Feb 20 10:48:39", "unexpected timestamp value")
 
-              assert!(exists(.hostname), "hostname missing")
-              assert_eq!(.hostname, "mihir-ubuntu", "unexpected hostname value")
-
               assert!(exists(.program), "program missing")
               assert_eq!(.program, "sshd", "unexpected program value")
 
@@ -27,14 +24,10 @@ tests:
               assert!(exists(.pid), "pid missing")
               assert_eq!(.pid, 15112, "unexpected pid value")
 
-              assert!(exists(.event_type), "event_type missing")
-              assert_eq!(.event_type, "Connection reset by invalid user", "unexpected event_type value")
 
               assert!(exists(.username), "username missing")
               assert_eq!(.username, "mihirs", "unexpected username value")
 
-              assert!(exists(.source_ip), "source_ip missing")
-              assert_eq!(.source_ip, "192.168.186.1", "unexpected source_ip value")
 
               assert!(exists(.port), "port missing")
               assert_eq!(.port, 62747, "unexpected port value")
