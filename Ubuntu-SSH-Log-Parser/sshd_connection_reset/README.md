@@ -4,14 +4,16 @@ This Vector configuration parses Ubuntu's auth.log entries specifically for SSH 
 
 ## Overview
 
-The configuration detects and parses log entries when SSH connections are reset, particularly focusing on invalid user attempts. It extracts relevant information such as timestamp, hostname, program details, and connection information.
+The configuration detects and parses log entries when SSH connections are reset. It can handle both regular users and specifically identifies invalid or authenticating users.
 
 ## Input Format
 
-The parser expects syslog messages in the following format:
+The parser expects syslog messages in the following formats:
 
 ```
 Aug 15 14:23:45 ubuntu-server sshd[12345]: Connection reset by invalid user admin 192.168.1.100 port 54321 [preauth]
+Aug 15 14:23:45 ubuntu-server sshd[12345]: Connection reset by authenticating user admin 192.168.1.100 port 54321 [preauth]
+Aug 15 14:23:45 ubuntu-server sshd[12345]: Connection reset by admin 192.168.1.100 port 54321 [preauth]
 ```
 
 ## Configuration Details
@@ -19,7 +21,7 @@ Aug 15 14:23:45 ubuntu-server sshd[12345]: Connection reset by invalid user admi
 The configuration uses Vector's parsing capabilities to:
 1. Match the syslog pattern for connection reset events
 2. Extract timestamp, hostname, and program information
-3. Parse username, source IP, port, and connection status
+3. Parse user type (invalid/authenticating if present), username, source IP, port, and status
 4. Structure the data into a standardized JSON format
 
 ### Sample Output
@@ -33,7 +35,8 @@ The parsed log entry will be written to `vector_parsed_log.json` in the followin
   "program": "sshd",
   "appname": "sshd",
   "pid": 12345,
-  "event_type": "Connection reset by invalid user",
+  "event_type": "Connection reset",
+  "user_type": "invalid",
   "username": "admin",
   "source_ip": "192.168.1.100",
   "port": 54321,
@@ -41,7 +44,7 @@ The parsed log entry will be written to `vector_parsed_log.json` in the followin
 }
 ```
 
-This JSON output provides a structured representation of SSH connection reset events, making it easier to analyze and monitor failed connection attempts.
+The `user_type` field will only be present if the user is specifically marked as "invalid" or "authenticating" in the log.
 
 ## Usage
 
@@ -58,6 +61,7 @@ This JSON output provides a structured representation of SSH connection reset ev
 
 ## Notes
 
-- The parser specifically handles SSH connection reset events
+- The parser handles all types of SSH connection reset events
+- The regex pattern is flexible to accommodate optional user type information
 - Make sure your log format matches the expected input format
 - Adjust file paths in the configuration according to your system

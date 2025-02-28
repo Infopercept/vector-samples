@@ -1,1 +1,2 @@
 Feb 20 10:48:39 mihir-ubuntu sshd[15112]: Connection reset by invalid user mihirs 192.168.186.1 port 62747 [preauth]
+Feb 20 10:50:35 mihir-ubuntu sshd[15114]: Connection reset by authenticating user root 192.168.186.1 port 62750 [preauth]
