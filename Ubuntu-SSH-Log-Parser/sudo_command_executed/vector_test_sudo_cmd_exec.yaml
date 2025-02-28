@@ -1,0 +1,36 @@
+tests:
+  - name: "Verify sudo command execution parsing"
+    inputs:
+      - insert_at: "parse_sudo"
+        type: "log"
+        log_fields:
+          message: "Feb 20 10:42:00 mihir-ubuntu sudo:    mihir : TTY=pts/0 ; PWD=/var/log ; USER=root ; COMMAND=/usr/sbin/usermod -s /usr/sbin/nologin test"
+
+    outputs:
+      - extract_from: "parse_sudo"
+        conditions:
+          - type: "vrl"
+            source: |
+              # Ensure expected fields exist and have correct values
+              assert!(exists(.timestamp), "timestamp missing")
+              assert_eq!(.timestamp, "Feb 20 10:42:00", "unexpected timestamp value")
+              assert!(exists(.hostname), "hostname missing")
+              assert_eq!(.hostname, "mihir-ubuntu", "unexpected hostname value")
+              assert!(exists(.program), "program missing")
+              assert_eq!(.program, "sudo", "unexpected program value")
+              assert!(exists(.appname), "appname missing")
+              assert_eq!(.appname, "sudo", "unexpected appname value")
+              assert!(exists(.username), "username missing")
+              assert_eq!(.username, "mihir", "unexpected username value")
+              assert!(exists(.tty), "tty missing")
+              assert_eq!(.tty, "pts/0", "unexpected tty value")
+              assert!(exists(.pwd), "pwd missing")
+              assert_eq!(.pwd, "/var/log", "unexpected pwd value")
+              assert!(exists(.target_user), "target_user missing")
+              assert_eq!(.target_user, "root", "unexpected target_user value")
+              assert!(exists(.command), "command missing")
+              assert_eq!(.command, "/usr/sbin/usermod -s /usr/sbin/nologin test", "unexpected command value")
+              assert!(exists(.event_type), "event_type missing")
+              assert_eq!(.event_type, "sudo_command_executed", "unexpected event_type value")
+              assert!(exists(.affected_user), "affected_user missing")
+              assert_eq!(.affected_user, "test", "unexpected affected_user value")

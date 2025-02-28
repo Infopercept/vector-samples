@@ -1,0 +1,37 @@
+tests:
+  - name: "Verify PAM authentication failure log parsing"
+    inputs:
+      - insert_at: "parse_auth_failure"
+        type: "log"
+        log_fields:
+          message: "Feb 20 10:48:39 mihir-ubuntu sshd[15112]: PAM 1 more authentication failure; logname= uid=0 euid=0 tty=ssh ruser= rhost=192.168.186.1"
+    outputs:
+      - extract_from: "parse_auth_failure"
+        conditions:
+          - type: "vrl"
+            source: |
+              # Verify that all expected fields exist and contain the correct values.
+              assert!(exists(.timestamp), "timestamp missing")
+              assert_eq!(.timestamp, "Feb 20 10:48:39", "unexpected timestamp value")
+              assert!(exists(.hostname), "hostname missing")
+              assert_eq!(.hostname, "mihir-ubuntu", "unexpected hostname value")
+              assert!(exists(.program), "program missing")
+              assert_eq!(.program, "sshd", "unexpected program value")
+              assert!(exists(.appname), "appname missing")
+              assert_eq!(.appname, "sshd", "unexpected appname value")
+              assert!(exists(.pid), "pid missing")
+              assert_eq!(.pid, 15112, "unexpected pid value")
+              assert!(exists(.event), "event missing")
+              assert_eq!(.event, "PAM 1 more authentication failure", "unexpected event value")
+              assert!(exists(.logname), "logname missing")
+              assert_eq!(.logname, "", "unexpected logname value")
+              assert!(exists(.uid), "uid missing")
+              assert_eq!(.uid, 0, "unexpected uid value")
+              assert!(exists(.euid), "euid missing")
+              assert_eq!(.euid, 0, "unexpected euid value")
+              assert!(exists(.tty), "tty missing")
+              assert_eq!(.tty, "ssh", "unexpected tty value")
+              assert!(exists(.ruser), "ruser missing")
+              assert_eq!(.ruser, "", "unexpected ruser value")
+              assert!(exists(.rhost), "rhost missing")
+              assert_eq!(.rhost, "192.168.186.1", "unexpected rhost value")
