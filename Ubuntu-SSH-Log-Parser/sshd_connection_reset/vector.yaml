@@ -13,8 +13,9 @@ transforms:
     inputs:
       - "auth_logs"
     source: |
-      # Regex pattern to parse syslog header and connection reset details
-      pattern = r'^(?P<timestamp>\w+\s+\d+\s+\d+:\d+:\d+)\s+(?P<hostname>\S+)\s+(?P<program>\S+)\[(?P<pid>\d+)\]:\s+Connection reset by\s+(?:invalid user\s+)?(?P<username>\S+)\s+(?P<source_ip>[\d\.]+)\s+port\s+(?P<port>\d+)\s+\[(?P<status>[^\]]+)\]$'
+      # Regex pattern to parse syslog header and connection reset details.
+      # It captures "invalid" or "authenticating" as user_type if present.
+      pattern = r'^(?P<timestamp>\w+\s+\d+\s+\d+:\d+:\d+)\s+(?P<hostname>\S+)\s+(?P<program>\S+)\[(?P<pid>\d+)\]:\s+Connection reset by\s+(?:(?P<user_type>invalid|authenticating)\s+user\s+)?(?P<username>\S+)\s+(?P<source_ip>[\d\.]+)\s+port\s+(?P<port>\d+)\s+\[(?P<status>[^\]]+)\]$'
       parsed = parse_regex!(.message, pattern)
       
       .timestamp = parsed.timestamp
@@ -23,7 +24,8 @@ transforms:
       .appname = parsed.program
       .pid = to_int!(parsed.pid)
       
-      .event_type = "Connection reset by invalid user"
+      .event_type = "Connection reset"
+      .user_type = parsed.user_type
       .username = parsed.username
       .source_ip = parsed.source_ip
       .port = to_int!(parsed.port)
