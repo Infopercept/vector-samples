@@ -23,7 +23,7 @@ transforms:
       .appname = parsed.program
       .pid = to_int!(parsed.pid)
       
-      .event_type = "Failed password for invalid user"
+      .event_type = "Failed password"
       .username = parsed.username
       .source_ip = parsed.source_ip
       .port = to_int!(parsed.port)
