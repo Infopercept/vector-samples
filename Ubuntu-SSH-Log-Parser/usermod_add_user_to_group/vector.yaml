@@ -1,0 +1,37 @@
+data_dir: "/var/lib/vector"
+
+sources:
+  auth_logs:
+    type: "file"
+    include:
+      - "auth.log"
+    start_at_beginning: true
+
+transforms:
+  parse_usermod:
+    type: "remap"
+    inputs:
+      - "auth_logs"
+    source: |
+      pattern = r'^(?P<timestamp>\w+\s+\d+\s+\d+:\d+:\d+)\s+(?P<hostname>\S+)\s+usermod\[(?P<pid>\d+)\]:\s+add\s+\'(?P<user>[^\']+)\'\s+to\s+(?P<shadow>shadow\s+)?group\s+\'(?P<group>[^\']+)\'$'
+      parsed = parse_regex!(.message, pattern)
+      .timestamp  = parsed.timestamp
+      .hostname   = parsed.hostname
+      .program    = "usermod_add"
+      .appname    = "usermod_add"
+      .pid        = to_int!(parsed.pid)
+      .entity       = parsed.user
+      .group      = parsed.group
+      .group_type = if parsed.shadow != null { "shadow group" } else { "normal group" }
+      .event_type = "usermod_add_user_to_group"
+      
+      del(.file)
+
+sinks:
+  output:
+    type: "file"
+    inputs:
+      - "parse_usermod"
+    path: "vector_parsed_usermod.json"
+    encoding:
+      codec: "json"
