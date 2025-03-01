@@ -1,0 +1,4 @@
+Feb 20 10:55:59 mihir-ubuntu usermod[15883]: add 'vector' to group 'adm'
+Feb 20 10:55:59 mihir-ubuntu usermod[15883]: add 'vector' to shadow group 'adm'
+Feb 20 10:55:59 mihir-ubuntu usermod[15891]: add 'vector' to group 'systemd-journal'
+Feb 20 10:55:59 mihir-ubuntu usermod[15891]: add 'vector' to shadow group 'systemd-journal'
