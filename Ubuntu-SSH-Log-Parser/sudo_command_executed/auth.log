@@ -1,1 +1,18 @@
 Feb 20 10:42:00 mihir-ubuntu sudo:    mihir : TTY=pts/0 ; PWD=/var/log ; USER=root ; COMMAND=/usr/sbin/usermod -s /usr/sbin/nologin test
+Feb 20 10:54:53 mihir-ubuntu sudo:    mihir : TTY=pts/0 ; PWD=/home ; USER=root ; COMMAND=/usr/bin/apt-get install vector
+Feb 20 10:55:05 mihir-ubuntu sudo:    mihir : TTY=pts/0 ; PWD=/home ; USER=root ; COMMAND=/usr/bin/apt-get update
+Feb 20 10:55:09 mihir-ubuntu sudo:    mihir : TTY=pts/0 ; PWD=/home ; USER=root ; COMMAND=/usr/bin/apt-get install -o Acquire::Retries=5 -y apt-transport-https curl gnupg
+Feb 20 10:55:15 mihir-ubuntu sudo:    mihir : TTY=pts/0 ; PWD=/home ; USER=root ; COMMAND=/usr/bin/tee /etc/apt/sources.list.d/vector.list
+Feb 20 10:55:15 mihir-ubuntu sudo:    mihir : TTY=pts/0 ; PWD=/home ; USER=root ; COMMAND=/usr/bin/sh -c 'chmod a+r /etc/apt/sources.list.d/vector.list'
+Feb 20 10:55:15 mihir-ubuntu sudo:    mihir : TTY=pts/0 ; PWD=/home ; USER=root ; COMMAND=/usr/bin/touch /usr/share/keyrings/datadog-archive-keyring.gpg
+Feb 20 10:55:15 mihir-ubuntu sudo:    mihir : TTY=pts/0 ; PWD=/home ; USER=root ; COMMAND=/usr/bin/chmod a+r /usr/share/keyrings/datadog-archive-keyring.gpg
+Feb 20 10:55:15 mihir-ubuntu sudo:    mihir : TTY=pts/0 ; PWD=/home ; USER=root ; COMMAND=/usr/bin/curl -sSL --retry 5 -o /tmp/DATADOG_APT_KEY_CURRENT.public https://keys.datadoghq.com/DATADOG_APT_KEY_CURRENT.public
+Feb 20 10:55:16 mihir-ubuntu sudo:    mihir : TTY=pts/0 ; PWD=/home ; USER=root ; COMMAND=/usr/bin/cat /tmp/DATADOG_APT_KEY_CURRENT.public
+Feb 20 10:55:16 mihir-ubuntu sudo:    mihir : TTY=pts/0 ; PWD=/home ; USER=root ; COMMAND=/usr/bin/gpg --import --batch --no-default-keyring --keyring /usr/share/keyrings/datadog-archive-keyring.gpg
+Feb 20 10:55:16 mihir-ubuntu sudo:    mihir : TTY=pts/0 ; PWD=/home ; USER=root ; COMMAND=/usr/bin/curl -sSL --retry 5 -o /tmp/DATADOG_APT_KEY_C0962C7D.public https://keys.datadoghq.com/DATADOG_APT_KEY_C0962C7D.public
+Feb 20 10:55:16 mihir-ubuntu sudo:    mihir : TTY=pts/0 ; PWD=/home ; USER=root ; COMMAND=/usr/bin/gpg --import --batch --no-default-keyring --keyring /usr/share/keyrings/datadog-archive-keyring.gpg
+Feb 20 10:55:16 mihir-ubuntu sudo:    mihir : TTY=pts/0 ; PWD=/home ; USER=root ; COMMAND=/usr/bin/cat /tmp/DATADOG_APT_KEY_C0962C7D.public
+Feb 20 10:55:16 mihir-ubuntu sudo:    mihir : TTY=pts/0 ; PWD=/home ; USER=root ; COMMAND=/usr/bin/curl -sSL --retry 5 -o /tmp/DATADOG_APT_KEY_F14F620E.public https://keys.datadoghq.com/DATADOG_APT_KEY_F14F620E.public
+Feb 20 10:55:17 mihir-ubuntu sudo:    mihir : TTY=pts/0 ; PWD=/home ; USER=root ; COMMAND=/usr/bin/cat /tmp/DATADOG_APT_KEY_F14F620E.public
+Feb 20 10:55:17 mihir-ubuntu sudo:    mihir : TTY=pts/0 ; PWD=/home ; USER=root ; COMMAND=/usr/bin/gpg --import --batch --no-default-keyring --keyring /usr/share/keyrings/datadog-archive-keyring.gpg
+Feb 20 10:55:17 mihir-ubuntu sudo:    mihir : TTY=pts/0 ; PWD=/home ; USER=root ; COMMAND=/usr/bin/apt-get update -o Dir::Etc::sourcelist=sources.list.d/vector.list -o Dir::Etc::sourceparts=- -o APT::Get::List-Cleanup=0
