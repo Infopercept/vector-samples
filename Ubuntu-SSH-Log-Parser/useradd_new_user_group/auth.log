@@ -1,0 +1,2 @@
+Feb 20 10:55:53 mihir-ubuntu useradd[15862]: new group: name=vector, GID=998
+Feb 20 10:55:53 mihir-ubuntu useradd[15862]: new user: name=vector, UID=998, GID=998, home=/var/lib/vector, shell=/sbin/nologin, from=/dev/pts/2
