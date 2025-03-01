@@ -37,12 +37,9 @@ The parsed log entry will be written to `vector_parsed_sudo.json` in the followi
   "pwd": "/home/user",
   "target_user": "root",
   "command": "/usr/sbin/usermod -s /bin/bash targetuser",
-  "affected_user": "targetuser",
   "event_type": "sudo_command_executed"
 }
 ```
-
-This JSON output provides a structured representation of sudo command execution events, making it easier to analyze and process the log data.
 
 ## Usage
 
@@ -60,6 +57,5 @@ This JSON output provides a structured representation of sudo command execution 
 ## Notes
 
 - The parser specifically handles sudo command execution events
-- Special handling for usermod commands to track affected users
 - Make sure your log format matches the expected input format
 - Adjust file paths in the configuration according to your system
