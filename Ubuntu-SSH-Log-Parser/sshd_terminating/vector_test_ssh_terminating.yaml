@@ -1,0 +1,30 @@
+tests:
+  - name: "Verify SSH signal log processing"
+    inputs:
+      - insert_at: "parse_ssh"
+        type: "log"
+        log_fields:
+          message: "Feb 20 10:46:08 mihir-ubuntu sshd[2998]: Received signal 15; terminating."
+
+    outputs:
+      - extract_from: "parse_ssh"
+        conditions:
+          - type: "vrl"
+            source: |
+              # Ensure expected fields exist and have correct values
+              assert!(exists(.timestamp), "timestamp missing")
+              assert_eq!(.timestamp, "Feb 20 10:46:08", "unexpected timestamp value")
+              assert!(exists(.hostname), "hostname missing")
+              assert_eq!(.hostname, "mihir-ubuntu", "unexpected hostname value")
+              assert!(exists(.program), "program missing")
+              assert_eq!(.program, "sshd", "unexpected program value")
+              assert!(exists(.appname), "appname missing")
+              assert_eq!(.appname, "sshd", "unexpected appname value")
+              assert!(exists(.pid), "pid missing")
+              assert_eq!(.pid, 2998, "unexpected pid value")
+              assert!(exists(.signal), "signal missing")
+              assert_eq!(.signal, 15, "unexpected signal value")
+              assert!(exists(.reason), "reason missing")
+              assert_eq!(.reason, "terminating.", "unexpected reason value")
+              assert!(exists(.event_type), "event_type missing")
+              assert_eq!(.event_type, "ssh_signal", "unexpected event_type value")
