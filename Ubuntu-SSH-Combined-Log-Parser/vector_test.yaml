@@ -1,0 +1,436 @@
+tests:
+  - name: "Verify nologin attempt"
+    inputs:
+      - insert_at: "parse_logs"
+        type: "log"
+        log_fields:
+          message: "Feb 20 10:42:06 mihir-ubuntu nologin: Attempted login by test (UID: 1001) on /dev/pts/1"
+    outputs:
+      - extract_from: "parse_logs"
+        conditions:
+          - type: "vrl"
+            source: |
+              assert_eq!(.event_type, "attempted_login")
+              assert_eq!(.username, "test")
+              assert_eq!(.user_uid, 1001)
+              assert_eq!(.tty, "/dev/pts/1")
+
+  - name: "Verify successful SSH login"
+    inputs:
+      - insert_at: "parse_logs"
+        type: "log"
+        log_fields:
+          message: "Feb 20 10:41:42 mihir-ubuntu sshd[3087]: Accepted password for test from 192.168.186.1 port 62721 ssh2"
+    outputs:
+      - extract_from: "parse_logs"
+        conditions:
+          - type: "vrl"
+            source: |
+              assert_eq!(.timestamp, "Feb 20 10:41:42")
+              assert_eq!(.hostname, "mihir-ubuntu")
+              assert_eq!(.program, "sshd")
+              assert_eq!(.pid, 3087)
+              assert_eq!(.username, "test")
+              assert_eq!(.source_ip, "192.168.186.1")
+              assert_eq!(.port, 62721)
+              assert_eq!(.protocol, "ssh2")
+              assert_eq!(.event_type, "Accepted password")
+
+  - name: "Verify failed SSH login"
+    inputs:
+      - insert_at: "parse_logs"
+        type: "log"
+        log_fields:
+          message: "Feb 20 10:48:53 mihir-ubuntu sshd[15114]: Failed password for root from 192.168.186.1 port 62750 ssh2"
+    outputs:
+      - extract_from: "parse_logs"
+        conditions:
+          - type: "vrl"
+            source: |
+              assert_eq!(.event_type, "Failed password")
+              assert_eq!(.username, "root")
+              assert_eq!(.source_ip, "192.168.186.1")
+              assert_eq!(.port, 62750)
+              assert_eq!(.protocol, "ssh2")
+
+  - name: "Verify sudo command execution"
+    inputs:
+      - insert_at: "parse_logs"
+        type: "log"
+        log_fields:
+          message: "Feb 20 10:42:00 mihir-ubuntu sudo:    mihir : TTY=pts/0 ; PWD=/var/log ; USER=root ; COMMAND=/usr/sbin/usermod -s /usr/sbin/nologin test"
+    outputs:
+      - extract_from: "parse_logs"
+        conditions: 
+          - type: "vrl"
+            source: |
+              assert_eq!(.timestamp, "Feb 20 10:42:00")
+              assert_eq!(.hostname, "mihir-ubuntu")
+              assert_eq!(.program, "sudo")
+              assert_eq!(.username, "mihir")
+              assert_eq!(.target_user, "root")
+              assert_eq!(.tty, "pts/0")
+              assert_eq!(.pwd, "/var/log")
+              assert_eq!(.command, "/usr/sbin/usermod -s /usr/sbin/nologin test")
+              assert_eq!(.event_type, "sudo_command_executed")
+
+  - name: "Verify user shell modification"
+    inputs:
+      - insert_at: "parse_logs"
+        type: "log"
+        log_fields:
+          message: "Feb 20 10:42:00 mihir-ubuntu usermod[3171]: change user 'test' shell from '/bin/bash' to '/usr/sbin/nologin'"
+    outputs:
+      - extract_from: "parse_logs"
+        conditions:
+          - type: "vrl"
+            source: |
+              assert_eq!(.timestamp, "Feb 20 10:42:00")
+              assert_eq!(.hostname, "mihir-ubuntu")
+              assert_eq!(.program, "usermod")
+              assert_eq!(.pid, 3171)
+              assert_eq!(.user, "test")
+              assert_eq!(.old_shell, "/bin/bash")
+              assert_eq!(.new_shell, "/usr/sbin/nologin")
+              assert_eq!(.event_type, "usermod_change_user_shell")
+
+  - name: "Verify connection reset"
+    inputs:
+      - insert_at: "parse_logs"
+        type: "log"
+        log_fields:
+          message: "Feb 20 10:48:39 mihir-ubuntu sshd[15112]: Connection reset by invalid user mihirs 192.168.186.1 port 62747 [preauth]"
+    outputs:
+      - extract_from: "parse_logs"
+        conditions:
+          - type: "vrl"
+            source: |
+              assert_eq!(.event_type, "Connection reset")
+              assert_eq!(.user_type, "invalid")
+              assert_eq!(.username, "mihirs")
+              assert_eq!(.source_ip, "192.168.186.1")
+              assert_eq!(.port, 62747)
+              assert_eq!(.status, "preauth")
+
+  - name: "Verify session events"
+    inputs:
+    - insert_at: "parse_logs"
+      type: "log"
+      log_fields:
+        message: "Feb 20 10:41:42 mihir-ubuntu systemd-logind[1142]: New session 7 of user test."
+    outputs:
+    - extract_from: "parse_logs"
+      conditions:
+        - type: "vrl"
+          source: | 
+            assert_eq!(.event_type, "new session")
+            assert_eq!(.timestamp, "Feb 20 10:41:42")
+            assert_eq!(.hostname, "mihir-ubuntu")
+            assert_eq!(.program, "systemd-logind")
+            assert_eq!(.pid, 1142)
+            assert_eq!(.appname, "systemd-logind")
+            assert_eq!(.session_id, 7)
+            assert_eq!(.username, "test.")
+
+
+  - name: "Verify PAM authentication failure"
+    inputs:
+      - insert_at: "parse_logs"
+        type: "log"
+        log_fields:
+          message: "Feb 20 10:48:24 mihir-ubuntu sshd[15112]: pam_unix(sshd:auth): authentication failure; logname= uid=0 euid=0 tty=ssh ruser= rhost=192.168.186.1"
+    outputs:
+      - extract_from: "parse_logs"
+        conditions:
+          - type: "vrl"
+            source: |
+              assert_eq!(.event_type, "pam_unix_authentication_failure")
+              assert_eq!(.pam_module, "pam_unix")
+              assert_eq!(.uid, 0)
+              assert_eq!(.euid, 0)
+              assert_eq!(.tty, "ssh")
+              assert_eq!(.rhost, "192.168.186.1")
+
+  - name: "Verify user modification"
+    inputs:
+      - insert_at: "parse_logs"
+        type: "log"
+        log_fields:
+          message: "Feb 20 10:55:59 mihir-ubuntu usermod[15883]: add 'vector' to group 'adm'"
+    outputs:
+      - extract_from: "parse_logs"
+        conditions:
+          - type: "vrl"
+            source: |
+              assert_eq!(.event_type, "usermod_add_user_to_group")
+              assert_eq!(.entity, "vector")
+              assert_eq!(.group, "adm")
+              assert_eq!(.group_type, "normal group")
+
+  - name: "Verify new user creation"
+    inputs:
+      - insert_at: "parse_logs"
+        type: "log"
+        log_fields:
+          message: "Feb 20 10:55:53 mihir-ubuntu useradd[15862]: new user: name=vector, UID=998, GID=998, home=/var/lib/vector, shell=/sbin/nologin, from=/dev/pts/2"
+    outputs:
+      - extract_from: "parse_logs"
+        conditions:
+          - type: "vrl"
+            source: |
+              assert_eq!(.event_type, "useradd_event")
+              assert_eq!(.name, "vector")
+              assert_eq!(.uid, 998)
+              assert_eq!(.gid, 998)
+              assert_eq!(.home, "/var/lib/vector")
+              assert_eq!(.shell, "/sbin/nologin")
+
+  - name: "Verify server listening"
+    inputs:
+      - insert_at: "parse_logs"
+        type: "log"
+        log_fields:
+          message: "Feb 20 10:46:08 mihir-ubuntu sshd[3631]: Server listening on 0.0.0.0 port 22."
+    outputs:
+      - extract_from: "parse_logs"
+        conditions:
+          - type: "vrl"
+            source: |
+              assert_eq!(.event_type, "server_listening_ipv4")
+              assert_eq!(.source_ip, "0.0.0.0")
+              assert_eq!(.port, 22)
+              assert_eq!(.ipv_version, "IPv4")
+
+  - name: "Verify disconnect event"
+    inputs:
+      - insert_at: "parse_logs"
+        type: "log"
+        log_fields:
+          message: "Feb 20 10:41:47 mihir-ubuntu sshd[3154]: Received disconnect from 192.168.186.1 port 62721:11: disconnected by user"
+    outputs:
+      - extract_from: "parse_logs"
+        conditions:
+          - type: "vrl"
+            source: |
+              assert_eq!(.event_type, "disconnect")
+              assert_eq!(.disconnect_ip, "192.168.186.1")
+              assert_eq!(.port, 62721)
+              assert_eq!(.disconnect_code, 11)
+              assert_eq!(.reason, "disconnected by user")
+
+  - name: "Verify signal received"
+    inputs:
+      - insert_at: "parse_logs"
+        type: "log"
+        log_fields:
+          message: "Feb 20 10:46:08 mihir-ubuntu sshd[2998]: Received signal 15; terminating."
+    outputs:
+      - extract_from: "parse_logs"
+        conditions:
+          - type: "vrl"
+            source: |
+              assert_eq!(.event_type, "ssh_signal")
+              assert_eq!(.signal, 15)
+              assert_eq!(.reason, "terminating.")
+
+  - name: "Verify PAM session events"
+    inputs:
+      - insert_at: "parse_logs"
+        type: "log"
+        log_fields:
+          message: "Feb 20 10:41:42 mihir-ubuntu systemd: pam_unix(systemd-user:session): session opened for user test(uid=1001) by (uid=0)"
+    outputs:
+      - extract_from: "parse_logs"
+        conditions:
+          - type: "vrl"
+            source: |
+              assert_eq!(.event_type, "session opened")
+              assert_eq!(.username, "test")
+              assert_eq!(.target_uid, 1001)
+              assert_eq!(.actor_uid, 0)
+              assert_eq!(.pam_module, "pam_unix")
+              assert_eq!(.pam_activity, "systemd-user:session")
+
+  - name: "Verify repeated authentication failures"
+    inputs:
+      - insert_at: "parse_logs"
+        type: "log"
+        log_fields:
+          message: "Feb 20 10:50:33 mihir-ubuntu sshd[15114]: message repeated 2 times: [ Failed password for root from 192.168.186.1 port 62750 ssh2]"
+    outputs:
+      - extract_from: "parse_logs"
+        conditions:
+          - type: "vrl"
+            source: |
+              assert_eq!(.event_type, "Failed password repeated")
+              assert_eq!(.repeat_times, 2)
+              assert_eq!(.username, "root")
+              assert_eq!(.source_ip, "192.168.186.1")
+              assert_eq!(.port, 62750)
+              assert_eq!(.protocol, "ssh2")
+
+  - name: "Verify session closed event"
+    inputs:
+      - insert_at: "parse_logs"
+        type: "log"
+        log_fields:
+          message: "Feb 20 10:41:47 mihir-ubuntu sshd[3087]: pam_unix(sshd:session): session closed for user test"
+    outputs:
+      - extract_from: "parse_logs"
+        conditions:
+          - type: "vrl"
+            source: |
+              assert_eq!(.event_type, "session closed")
+              assert_eq!(.username, "test")
+              assert_eq!(.pam_module, "pam_unix")
+              assert_eq!(.pam_activity, "sshd:session")
+              assert_eq!(.host, "localhost.localdomain")
+
+  - name: "Verify session logged out"
+    inputs:
+      - insert_at: "parse_logs"
+        type: "log"
+        log_fields:
+          message: "Feb 20 10:41:47 mihir-ubuntu systemd-logind[1142]: Session 7 logged out. Waiting for processes to exit."
+    outputs:
+      - extract_from: "parse_logs"
+        conditions:
+          - type: "vrl"
+            source: |
+              assert_eq!(.event_type, "session_logged_out")
+              assert_eq!(.session_id, 7)
+              assert_eq!(.program, "systemd-logind")
+              assert_eq!(.pid, 1142)
+
+  - name: "Verify session removed"
+    inputs:
+      - insert_at: "parse_logs"
+        type: "log"
+        log_fields:
+          message: "Feb 20 10:41:47 mihir-ubuntu systemd-logind[1142]: Removed session 7."
+    outputs:
+      - extract_from: "parse_logs"
+        conditions:
+          - type: "vrl"
+            source: |
+              assert_eq!(.event_type, "session_removed")
+              assert_eq!(.session_id, 7)
+              assert_eq!(.program, "systemd-logind")
+              assert_eq!(.pid, 1142)
+
+  - name: "Verify new group creation"
+    inputs:
+      - insert_at: "parse_logs"
+        type: "log"
+        log_fields:
+          message: "Feb 20 10:55:53 mihir-ubuntu useradd[15862]: new group: name=vector, GID=998"
+    outputs:
+      - extract_from: "parse_logs"
+        conditions:
+          - type: "vrl"
+            source: |
+              assert_eq!(.event_type, "useradd_event")
+              assert_eq!(.log_type, "new group")
+              assert_eq!(.name, "vector")
+              assert_eq!(.gid, 998)
+
+  - name: "Verify shadow group addition"
+    inputs:
+      - insert_at: "parse_logs"
+        type: "log"
+        log_fields:
+          message: "Feb 20 10:55:59 mihir-ubuntu usermod[15883]: add 'vector' to shadow group 'adm'"
+    outputs:
+      - extract_from: "parse_logs"
+        conditions:
+          - type: "vrl"
+            source: |
+              assert_eq!(.event_type, "usermod_add_user_to_group")
+              assert_eq!(.entity, "vector")
+              assert_eq!(.group, "adm")
+              assert_eq!(.group_type, "shadow group")
+
+  - name: "Verify sudo session closed"
+    inputs:
+      - insert_at: "parse_logs"
+        type: "log"
+        log_fields:
+          message: "Feb 20 10:41:34 mihir-ubuntu sudo: pam_unix(sudo:session): session closed for user root"
+    outputs:
+      - extract_from: "parse_logs"
+        conditions:
+          - type: "vrl"
+            source: |
+              assert_eq!(.event_type, "session_closed")
+              assert_eq!(.session_user, "root")
+              assert_eq!(.pam_module, "pam_unix")
+              assert_eq!(.pam_activity, "sudo:session")
+
+  - name: "Verify PAM check pass"
+    inputs:
+      - insert_at: "parse_logs"
+        type: "log"
+        log_fields:
+          message: "Feb 20 10:48:24 mihir-ubuntu sshd[15112]: pam_unix(sshd:auth): check pass; user unknown"
+    outputs:
+      - extract_from: "parse_logs"
+        conditions:
+          - type: "vrl"
+            source: |
+              assert_eq!(.event_type, "pam_unix_check_pass")
+              assert_eq!(.pam_module, "pam_unix")
+              assert_eq!(.pam_activity, "sshd:auth")
+              assert_eq!(.reason, "check pass; user unknown")
+
+  - name: "Verify server listening IPv6"
+    inputs:
+      - insert_at: "parse_logs"
+        type: "log"
+        log_fields:
+          message: "Feb 20 10:46:08 mihir-ubuntu sshd[3631]: Server listening on :: port 22."
+    outputs:
+      - extract_from: "parse_logs"
+        conditions:
+          - type: "vrl"
+            source: |
+              assert_eq!(.event_type, "server_listening_ipv6")
+              assert_eq!(.source_ip, "::")
+              assert_eq!(.port, 22)
+              assert_eq!(.ipv_version, "IPv6")
+
+  - name: "Verify sudo session opened"
+    inputs:
+      - insert_at: "parse_logs"
+        type: "log"
+        log_fields:
+          message: "Feb 20 10:42:00 mihir-ubuntu sudo: pam_unix(sudo:session): session opened for user root(uid=0) by mihir(uid=1000)"
+    outputs:
+      - extract_from: "parse_logs"
+        conditions:
+          - type: "vrl"
+            source: |
+              assert_eq!(.event_type, "session_opened")
+              assert_eq!(.target_user, "root")
+              assert_eq!(.username, "mihir")
+              assert_eq!(.target_uid, 0)
+              assert_eq!(.actor_uid, 1000)
+              assert_eq!(.pam_module, "pam_unix")
+              assert_eq!(.pam_activity, "sudo:session")
+
+  - name: "Verify multiple PAM failures"
+    inputs:
+      - insert_at: "parse_logs"
+        type: "log"
+        log_fields:
+          message: "Feb 20 10:50:35 mihir-ubuntu sshd[15114]: PAM 2 more authentication failures; logname= uid=0 euid=0 tty=ssh ruser= rhost=192.168.186.1  user=root"
+    outputs:
+      - extract_from: "parse_logs"
+        conditions:
+          - type: "vrl"
+            source: |
+              assert_eq!(.event_type, "PAM 2 more authentication failures")
+              assert_eq!(.uid, 0)
+              assert_eq!(.euid, 0)
+              assert_eq!(.tty, "ssh")
+              assert_eq!(.rhost, "192.168.186.1")
+              assert_eq!(.user, "root")
