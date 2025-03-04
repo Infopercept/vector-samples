@@ -1,0 +1,51 @@
+Feb 20 10:42:06 mihir-ubuntu nologin: Attempted login by test (UID: 1001) on /dev/pts/1
+Feb 20 10:41:42 mihir-ubuntu sshd[3087]: Accepted password for test from 192.168.186.1 port 62721 ssh2
+Feb 20 10:48:24 mihir-ubuntu sshd[15112]: pam_unix(sshd:auth): authentication failure; logname= uid=0 euid=0 tty=ssh ruser= rhost=192.168.186.1
+Feb 20 10:48:51 mihir-ubuntu sshd[15114]: pam_unix(sshd:auth): authentication failure; logname= uid=0 euid=0 tty=ssh ruser= rhost=192.168.186.1  user=root
+Feb 20 10:48:24 mihir-ubuntu sshd[15112]: pam_unix(sshd:auth): check pass; user unknown
+Feb 20 10:48:39 mihir-ubuntu sshd[15112]: Connection reset by invalid user mihirs 192.168.186.1 port 62747 [preauth]
+Feb 20 10:50:35 mihir-ubuntu sshd[15114]: Connection reset by authenticating user root 192.168.186.1 port 62750 [preauth]
+Feb 20 10:41:47 mihir-ubuntu sshd[3154]: Disconnected from user test 192.168.186.1 port 62721
+Feb 20 10:48:27 mihir-ubuntu sshd[15112]: Failed password for invalid user mihirs from 192.168.186.1 port 62747 ssh2
+Feb 20 10:48:53 mihir-ubuntu sshd[15114]: Failed password for root from 192.168.186.1 port 62750 ssh2
+Feb 20 10:50:33 mihir-ubuntu sshd[15114]: message repeated 2 times: [ Failed password for root from 192.168.186.1 port 62750 ssh2]
+Feb 20 10:48:22 mihir-ubuntu sshd[15112]: Invalid user mihirs from 192.168.186.1 port 62747
+Feb 20 10:48:39 mihir-ubuntu sshd[15112]: PAM 1 more authentication failure; logname= uid=0 euid=0 tty=ssh ruser= rhost=192.168.186.1
+Feb 20 10:50:35 mihir-ubuntu sshd[15114]: PAM 2 more authentication failures; logname= uid=0 euid=0 tty=ssh ruser= rhost=192.168.186.1  user=root
+Feb 20 10:41:47 mihir-ubuntu sshd[3154]: Received disconnect from 192.168.186.1 port 62721:11: disconnected by user
+Feb 20 10:46:08 mihir-ubuntu sshd[3631]: Server listening on 0.0.0.0 port 22.
+Feb 20 10:46:08 mihir-ubuntu sshd[3631]: Server listening on :: port 22.
+Feb 20 10:41:47 mihir-ubuntu sshd[3087]: pam_unix(sshd:session): session closed for user test
+Feb 20 10:41:42 mihir-ubuntu sshd[3087]: pam_unix(sshd:session): session opened for user test(uid=1001) by (uid=0)
+Feb 20 10:46:08 mihir-ubuntu sshd[2998]: Received signal 15; terminating.
+Feb 20 10:42:00 mihir-ubuntu sudo:    mihir : TTY=pts/0 ; PWD=/var/log ; USER=root ; COMMAND=/usr/sbin/usermod -s /usr/sbin/nologin test
+Feb 20 10:54:53 mihir-ubuntu sudo:    mihir : TTY=pts/0 ; PWD=/home ; USER=root ; COMMAND=/usr/bin/apt-get install vector
+Feb 20 10:55:05 mihir-ubuntu sudo:    mihir : TTY=pts/0 ; PWD=/home ; USER=root ; COMMAND=/usr/bin/apt-get update
+Feb 20 10:55:09 mihir-ubuntu sudo:    mihir : TTY=pts/0 ; PWD=/home ; USER=root ; COMMAND=/usr/bin/apt-get install -o Acquire::Retries=5 -y apt-transport-https curl gnupg
+Feb 20 10:55:15 mihir-ubuntu sudo:    mihir : TTY=pts/0 ; PWD=/home ; USER=root ; COMMAND=/usr/bin/tee /etc/apt/sources.list.d/vector.list
+Feb 20 10:55:15 mihir-ubuntu sudo:    mihir : TTY=pts/0 ; PWD=/home ; USER=root ; COMMAND=/usr/bin/sh -c 'chmod a+r /etc/apt/sources.list.d/vector.list'
+Feb 20 10:55:15 mihir-ubuntu sudo:    mihir : TTY=pts/0 ; PWD=/home ; USER=root ; COMMAND=/usr/bin/touch /usr/share/keyrings/datadog-archive-keyring.gpg
+Feb 20 10:55:15 mihir-ubuntu sudo:    mihir : TTY=pts/0 ; PWD=/home ; USER=root ; COMMAND=/usr/bin/chmod a+r /usr/share/keyrings/datadog-archive-keyring.gpg
+Feb 20 10:55:15 mihir-ubuntu sudo:    mihir : TTY=pts/0 ; PWD=/home ; USER=root ; COMMAND=/usr/bin/curl -sSL --retry 5 -o /tmp/DATADOG_APT_KEY_CURRENT.public https://keys.datadoghq.com/DATADOG_APT_KEY_CURRENT.public
+Feb 20 10:55:16 mihir-ubuntu sudo:    mihir : TTY=pts/0 ; PWD=/home ; USER=root ; COMMAND=/usr/bin/cat /tmp/DATADOG_APT_KEY_CURRENT.public
+Feb 20 10:55:16 mihir-ubuntu sudo:    mihir : TTY=pts/0 ; PWD=/home ; USER=root ; COMMAND=/usr/bin/gpg --import --batch --no-default-keyring --keyring /usr/share/keyrings/datadog-archive-keyring.gpg
+Feb 20 10:55:16 mihir-ubuntu sudo:    mihir : TTY=pts/0 ; PWD=/home ; USER=root ; COMMAND=/usr/bin/curl -sSL --retry 5 -o /tmp/DATADOG_APT_KEY_C0962C7D.public https://keys.datadoghq.com/DATADOG_APT_KEY_C0962C7D.public
+Feb 20 10:55:16 mihir-ubuntu sudo:    mihir : TTY=pts/0 ; PWD=/home ; USER=root ; COMMAND=/usr/bin/gpg --import --batch --no-default-keyring --keyring /usr/share/keyrings/datadog-archive-keyring.gpg
+Feb 20 10:55:16 mihir-ubuntu sudo:    mihir : TTY=pts/0 ; PWD=/home ; USER=root ; COMMAND=/usr/bin/cat /tmp/DATADOG_APT_KEY_C0962C7D.public
+Feb 20 10:55:16 mihir-ubuntu sudo:    mihir : TTY=pts/0 ; PWD=/home ; USER=root ; COMMAND=/usr/bin/curl -sSL --retry 5 -o /tmp/DATADOG_APT_KEY_F14F620E.public https://keys.datadoghq.com/DATADOG_APT_KEY_F14F620E.public
+Feb 20 10:55:17 mihir-ubuntu sudo:    mihir : TTY=pts/0 ; PWD=/home ; USER=root ; COMMAND=/usr/bin/cat /tmp/DATADOG_APT_KEY_F14F620E.public
+Feb 20 10:55:17 mihir-ubuntu sudo:    mihir : TTY=pts/0 ; PWD=/home ; USER=root ; COMMAND=/usr/bin/gpg --import --batch --no-default-keyring --keyring /usr/share/keyrings/datadog-archive-keyring.gpg
+Feb 20 10:55:17 mihir-ubuntu sudo:    mihir : TTY=pts/0 ; PWD=/home ; USER=root ; COMMAND=/usr/bin/apt-get update -o Dir::Etc::sourcelist=sources.list.d/vector.list -o Dir::Etc::sourceparts=- -o APT::Get::List-Cleanup=0
+Feb 20 10:41:34 mihir-ubuntu sudo: pam_unix(sudo:session): session closed for user root
+Feb 20 10:42:00 mihir-ubuntu sudo: pam_unix(sudo:session): session opened for user root(uid=0) by mihir(uid=1000)
+Feb 20 10:41:42 mihir-ubuntu systemd-logind[1142]: New session 7 of user test.
+Feb 20 10:41:47 mihir-ubuntu systemd-logind[1142]: Session 7 logged out. Waiting for processes to exit.
+Feb 20 10:41:42 mihir-ubuntu systemd: pam_unix(systemd-user:session): session opened for user test(uid=1001) by (uid=0)
+Feb 20 10:41:47 mihir-ubuntu systemd-logind[1142]: Removed session 7.
+Feb 20 10:55:53 mihir-ubuntu useradd[15862]: new group: name=vector, GID=998
+Feb 20 10:55:53 mihir-ubuntu useradd[15862]: new user: name=vector, UID=998, GID=998, home=/var/lib/vector, shell=/sbin/nologin, from=/dev/pts/2
+Feb 20 10:55:59 mihir-ubuntu usermod[15883]: add 'vector' to group 'adm'
+Feb 20 10:55:59 mihir-ubuntu usermod[15883]: add 'vector' to shadow group 'adm'
+Feb 20 10:55:59 mihir-ubuntu usermod[15891]: add 'vector' to group 'systemd-journal'
+Feb 20 10:55:59 mihir-ubuntu usermod[15891]: add 'vector' to shadow group 'systemd-journal'
+Feb 20 10:42:00 mihir-ubuntu usermod[3171]: change user 'test' shell from '/bin/bash' to '/usr/sbin/nologin'

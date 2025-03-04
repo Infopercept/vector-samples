@@ -1,0 +1,406 @@
+data_dir: "/var/lib/vector"
+
+sources:
+  auth_logs:
+    type: "file"
+    include:
+      - "auth.log"
+    ignore_checkpoints: true
+    read_from: beginning
+
+transforms:
+  parse_logs:
+    type: "remap"
+    inputs:
+      - "auth_logs"
+    source: |
+      .message = to_string(.message) ?? ""
+      if contains(.message, "Attempted login by") {
+          .event_type = "attempted_login"
+          parsed = parse_regex!(.message, r'^(?P<timestamp>\w+\s+\d+\s+\d+:\d+:\d+)\s+(?P<hostname>\S+)\s+(?P<program>\S+):\s+Attempted login by\s+(?P<username>\S+)\s+\(UID:\s+(?P<uid>\d+)\)\s+on\s+(?P<tty>\S+)$')
+          .timestamp = parsed.timestamp
+          .hostname = parsed.hostname
+          .program = parsed.program
+          .appname = parsed.program
+          .username = parsed.username
+          .user_uid = to_int!(parsed.uid)
+          .tty = parsed.tty
+      } else if contains(.message, "Connection reset by") {
+          .event_type = "Connection reset"
+          parsed = parse_regex!(.message, r'^(?P<timestamp>\w+\s+\d+\s+\d+:\d+:\d+)\s+(?P<hostname>\S+)\s+(?P<program>\S+)\[(?P<pid>\d+)\]:\s+Connection reset by\s+(?:(?P<user_type>invalid|authenticating)\s+user\s+)?(?P<username>\S+)\s+(?P<source_ip>[\d\.]+)\s+port\s+(?P<port>\d+)\s+\[(?P<status>[^\]]+)\]$')
+          .timestamp = parsed.timestamp
+          .hostname = parsed.hostname
+          .program = parsed.program
+          .appname = parsed.program
+          .pid = to_int!(parsed.pid)
+          .user_type = parsed.user_type
+          .username = parsed.username
+          .source_ip = parsed.source_ip
+          .port = to_int!(parsed.port)
+          .status = parsed.status
+      } else if contains(.message, "Disconnected from user") {
+          .event_type = "Disconnected"
+          parsed = parse_regex!(.message, r'^(?P<timestamp>\w+\s+\d+\s+\d+:\d+:\d+)\s+(?P<hostname>\S+)\s+(?P<program>\S+)\[(?P<pid>\d+)\]:\s+(?:Disconnected from user\s+(?P<username>\S+)\s+(?P<source_ip>[\d\.]+)\s+port\s+(?P<port>\d+)|(?P<raw_message>.+))$')
+          .timestamp = parsed.timestamp
+          .hostname = parsed.hostname
+          .program = parsed.program
+          .appname = parsed.program
+          .pid = to_int!(parsed.pid)
+          if parsed.username != null {
+              .username = parsed.username
+              .disconnect_ip = parsed.source_ip
+              .port = to_int!(parsed.port)
+          } else {
+              .log_details = parsed.raw_message
+          }
+      } else if contains(.message, "message repeated") {
+          .event_type = "Failed password repeated"
+          parsed = parse_regex!(.message, r'^(?P<timestamp>\w+\s+\d+\s+\d+:\d+:\d+)\s+(?P<hostname>\S+)\s+(?P<program>\S+)\[(?P<pid>\d+)\]:\s+message repeated\s+(?P<repeat>\d+)\s+times:\s+\[\s*(?P<reason>Failed password)\s+for\s+(?P<username>\S+)\s+from\s+(?P<source_ip>[\d\.]+)\s+port\s+(?P<port>\d+)\s+(?P<protocol>\S+)\s*\]$')
+          .timestamp = parsed.timestamp
+          .hostname = parsed.hostname
+          .program = parsed.program
+          .appname = parsed.program
+          .pid = to_int!(parsed.pid)
+          .repeat_times = to_int!(parsed.repeat)
+          .reason = parsed.reason
+          .username = parsed.username
+          .source_ip = parsed.source_ip
+          .port = to_int!(parsed.port)
+          .protocol = parsed.protocol
+      } else if contains(.message, "Invalid user") {
+          .event_type = "invalid_user"
+          parsed = parse_regex!(.message, r'^(?P<timestamp>\w+\s+\d+\s+\d+:\d+:\d+)\s+(?P<hostname>\S+)\s+(?P<program>\S+)\[(?P<pid>\d+)\]:\s+Invalid user\s+(?P<username>\S+)\s+from\s+(?P<source_ip>[\d\.]+)\s+port\s+(?P<port>\d+)$')
+          .timestamp = parsed.timestamp
+          .hostname = parsed.hostname
+          .program = parsed.program
+          .appname = parsed.program
+          .pid = to_int!(parsed.pid)
+          .username = parsed.username
+          .source_ip = parsed.source_ip
+          .port = to_int!(parsed.port)
+      } else if contains(.message, "Accepted password") {
+          .event_type = "Accepted password"
+          log_details = parse_regex!(.message, r'^(?P<timestamp>\w+\s+\d+\s+\d+:\d+:\d+)\s+(?P<hostname>\S+)\s+(?P<program>\S+)\[(?P<pid>\d+)\]:\s+(?P<auth_method>Accepted password)\s+for\s+(?P<username>\S+)\s+from\s+(?P<source_ip>[\d\.]+)\s+port\s+(?P<port>\d+)\s+(?P<protocol>\S+)$')
+          .timestamp = log_details.timestamp
+          .hostname = log_details.hostname
+          .program = log_details.program
+          .pid = to_int!(log_details.pid)
+          .appname = log_details.program
+          .username = log_details.username
+          .source_ip = log_details.source_ip
+          .port = to_int!(log_details.port)
+          .protocol = log_details.protocol
+      } else if contains(.message, "Failed password") {
+          .event_type = "Failed password"
+          parsed = parse_regex!(.message, r'^(?P<timestamp>\w+\s+\d+\s+\d+:\d+:\d+)\s+(?P<hostname>\S+)\s+(?P<program>\S+)\[(?P<pid>\d+)\]:\s+Failed password for (?:invalid user\s+)?(?P<username>\S+)\s+from\s+(?P<source_ip>[\d\.]+)\s+port\s+(?P<port>\d+)\s+(?P<protocol>\S+)$')
+          .timestamp = parsed.timestamp
+          .hostname = parsed.hostname
+          .program = parsed.program
+          .pid = to_int!(parsed.pid)
+          .appname = parsed.program
+          .username = parsed.username
+          .source_ip = parsed.source_ip
+          .port = to_int!(parsed.port)
+          .protocol = parsed.protocol
+      } else if contains(.message, "sudo:") && contains(.message, "session closed") {
+          .event_type = "session_closed"
+          parsed = parse_regex!(.message, r'^(?P<timestamp>\w+\s+\d+\s+\d+:\d+:\d+)\s+(?P<hostname>\S+)\s+sudo:\s+pam_unix\((?P<pam_activity>[^)]+)\):\s+session closed for user (?P<session_user>\S+)$')
+          .timestamp = parsed.timestamp
+          .hostname = parsed.hostname
+          .program = "sudo"
+          .appname = "sudo"
+          .pam_module = "pam_unix"
+          .pam_activity = parsed.pam_activity
+          .session_user = parsed.session_user
+          .host = "localhost.localdomain"
+      } else if contains(.message, "sudo:") && contains(.message, "session opened") {
+          parsed = parse_regex!(.message, r'^(?P<timestamp>\w+\s+\d+\s+\d+:\d+:\d+)\s+(?P<hostname>\S+)\s+sudo:\s+pam_unix\((?P<pam_activity>[^)]+)\):\s+session opened for user (?P<target_user>\S+)\(uid=(?P<target_uid>\d+)\)\s+by\s+(?P<username>\S+)\(uid=(?P<actor_uid>\d+)\)$')
+          .timestamp = parsed.timestamp
+          .hostname = parsed.hostname
+          .program = "sudo"
+          .appname = "sudo"
+          .pam_module = "pam_unix"
+          .pam_activity = parsed.pam_activity
+          .event_type = "session_opened"
+          .target_user = parsed.target_user
+          .target_uid = to_int!(parsed.target_uid)
+          .username = parsed.username
+          .actor_uid = to_int!(parsed.actor_uid)
+          .host = "localhost.localdomain"
+      } else if contains(.message, "Session") && contains(.message, "logged out") {
+          pattern = r'^(?P<timestamp>\w+\s+\d+\s+\d+:\d+:\d+)\s+(?P<hostname>\S+)\s+(?P<program>\S+)\[(?P<pid>\d+)\]:\s+Session\s+(?P<session_id>\d+)\s+logged\s+out\.\s+Waiting\s+for\s+processes\s+to\s+exit\.$'
+          parsed = parse_regex!(.message, pattern)
+          .timestamp = parsed.timestamp
+          .hostname = parsed.hostname
+          .program = parsed.program
+          .appname = parsed.program
+          .pid = to_int!(parsed.pid)
+          .session_id = to_int!(parsed.session_id)
+          .event_type = "session_logged_out"
+          del(.file)
+      } else if contains(.message, "Removed session") {
+          pattern = r'^(?P<timestamp>\w+\s+\d+\s+\d+:\d+:\d+)\s+(?P<hostname>\S+)\s+(?P<program>\S+)\[(?P<pid>\d+)\]:\s+Removed\s+session\s+(?P<session_id>\d+)\.$'
+          parsed = parse_regex!(.message, pattern)
+          .timestamp = parsed.timestamp
+          .hostname = parsed.hostname
+          .program = parsed.program
+          .appname = parsed.program
+          .pid = to_int!(parsed.pid)
+          .session_id = to_int!(parsed.session_id)
+          .event_type = "session_removed"
+          del(.file)
+      } else if contains(.message, "new group:") || contains(.message, "new user:") {
+          pattern = r'^(?P<timestamp>\w+\s+\d+\s+\d+:\d+:\d+)\s+(?P<hostname>\S+)\s+(?P<program>\S+)\[(?P<pid>\d+)\]:\s+(?P<log_type>new group|new user):\s+name=(?P<name>\S+),\s+(?:(?:GID=(?P<gid>\d+))|(?:UID=(?P<uid>\d+),\s+GID=(?P<gid2>\d+),\s+home=(?P<home>\S+),\s+shell=(?P<shell>\S+),\s+from=(?P<from>\S+)))$'
+          parsed = parse_regex!(.message, pattern)
+          .timestamp = parsed.timestamp
+          .hostname = parsed.hostname
+          .program = parsed.program
+          .appname = parsed.program
+          .pid = to_int!(parsed.pid)
+          .log_type = parsed.log_type
+          .name = parsed.name
+          if .log_type == "new group" {
+            .gid = to_int!(parsed.gid)
+          } else {
+            .uid = to_int!(parsed.uid)
+            .gid = to_int!(parsed.gid2)
+            .home = parsed.home
+            .shell = parsed.shell
+            .from = parsed.from
+          }
+          .event_type = "useradd_event"
+          del(.file)
+      } else if contains(.message, "usermod[") && contains(.message, "add") {
+          pattern = r'^(?P<timestamp>\w+\s+\d+\s+\d+:\d+:\d+)\s+(?P<hostname>\S+)\s+usermod\[(?P<pid>\d+)\]:\s+add\s+\'(?P<user>[^\']+)\'\s+to\s+(?P<shadow>shadow\s+)?group\s+\'(?P<group>[^\']+)\'$'
+          parsed = parse_regex!(.message, pattern)
+          .timestamp = parsed.timestamp
+          .hostname = parsed.hostname
+          .program = "usermod_add"
+          .appname = "usermod_add"
+          .pid = to_int!(parsed.pid)
+          .entity = parsed.user
+          .group = parsed.group
+          .group_type = if parsed.shadow != null { "shadow group" } else { "normal group" }
+          .event_type = "usermod_add_user_to_group"
+          del(.file)
+      } else if contains(.message, "usermod[") && contains(.message, "change user") {
+          pattern = r'^(?P<timestamp>\w+\s+\d+\s+\d+:\d+:\d+)\s+(?P<hostname>\S+)\s+(?P<program>\w+)\[(?P<pid>\d+)\]:\s+change user\s+\'(?P<user>[^\']+)\'\s+shell from\s+\'(?P<old_shell>[^\']+)\'\s+to\s+\'(?P<new_shell>[^\']+)\'$'
+          parsed = parse_regex!(.message, pattern)
+          .timestamp = parsed.timestamp
+          .hostname = parsed.hostname
+          .program = parsed.program
+          .appname = parsed.program
+          .pid = to_int!(parsed.pid)
+          .user = parsed.user
+          .old_shell = parsed.old_shell
+          .new_shell = parsed.new_shell
+          .event_type = "usermod_change_user_shell"
+          del(.file)
+      } else if contains(.message, "session opened for user") && contains(.message, "systemd:") {
+          pattern = r'^(?P<timestamp>\w+\s+\d+\s+\d+:\d+:\d+)\s+(?P<hostname>\S+)\s+(?P<program>\S+):\s+(?:(?P<pam_module>\S+)\((?P<pam_activity>[^)]+)\):\s+(?P<event>session opened)\s+for\s+user\s+(?P<username>\S+)\(uid=(?P<target_uid>\d+)\)\s+by\s+\(uid=(?P<actor_uid>\d+)\)|(?P<log_message>.*))$'
+          parsed = parse_regex!(.message, pattern)
+          .timestamp = parsed.timestamp
+          .hostname = parsed.hostname
+          .program = parsed.program
+          .appname = parsed.program
+          if parsed.event != null {
+            .pam_module = parsed.pam_module
+            .pam_activity = parsed.pam_activity
+            .event_type = parsed.event
+            .username = parsed.username
+            .target_uid = to_int!(parsed.target_uid)
+            .actor_uid = to_int!(parsed.actor_uid)
+          } else {
+            .log_details = parsed.log_message
+          }
+          del(.file)
+      } else if contains(.message, "session opened for user") && contains(.message, "pam_unix") {
+          result, err = parse_regex(.message, r'^(?P<timestamp>\w+\s+\d+\s+\d+:\d+:\d+)\s+(?P<hostname>\S+)\s+(?P<appname>\S+)\[(?P<pid>\d+)\]:\s+(?P<pam_module>\S+)\((?P<pam_activity>[^)]+)\):\s+(?P<event_type>session opened) for user (?P<username>\S+)\(uid=(?P<target_uid>\d+)\)\s+by\s+\(uid=(?P<actor_uid>\d+)\)$')
+          if err != null {
+              log("No regex match for session opened for user: " + err, level:"debug")
+              null
+          } else {
+              .timestamp = result.timestamp
+              .hostname = result.hostname
+              .appname = result.appname
+              .program = result.appname
+              .pid = to_int!(result.pid)
+              .pam_module = result.pam_module
+              .pam_activity = result.pam_activity
+              .event_type = result.event_type
+              .username = result.username
+              .target_uid = to_int!(result.target_uid)
+              .actor_uid = to_int!(result.actor_uid)
+          }
+      } else if contains(.message, "session closed for user") && contains(.message, "pam_unix") && !contains(.message, "sudo:") {
+          parsed = parse_regex!(.message, r'^(?P<timestamp>\w+\s+\d+\s+\d+:\d+:\d+)\s+(?P<hostname>\S+)\s+(?P<program>\S+)\[(?P<pid>\d+)\]:\s+pam_unix\((?P<pam_activity>[^)]+)\):\s+session closed for user\s+(?P<username>\S+)$')
+          .timestamp = parsed.timestamp
+          .hostname = parsed.hostname
+          .program = parsed.program
+          .appname = parsed.program
+          .pid = to_int!(parsed.pid)
+          .pam_module = "pam_unix"
+          .pam_activity = parsed.pam_activity
+          .event_type = "session closed"
+          .username = parsed.username
+          .host = "localhost.localdomain"
+      } else if contains(.message, "sudo:") && contains(.message, "TTY=") && contains(.message, "COMMAND=") && !contains(.message, "session opened") {
+          result, err = parse_regex(.message, r'^(?P<timestamp>\w+\s+\d+\s+\d+:\d+:\d+)\s+(?P<hostname>\S+)\s+sudo:\s+(?P<username>\S+)\s+:\s+TTY=(?P<tty>\S+)\s+;\s+PWD=(?P<pwd>\S+)\s+;\s+USER=(?P<target_user>\S+)\s+;\s+COMMAND=(?P<command>.*)\s*$')
+          if err != null {
+              log("No regex match for sudo command: " + err, level:"debug")
+              null
+          } else {
+              .timestamp = result.timestamp
+              .hostname = result.hostname
+              .program = "sudo"
+              .appname = "sudo"
+              .username = result.username
+              .tty = result.tty
+              .pwd = result.pwd
+              .target_user = result.target_user
+              .command = result.command
+              .event_type = "sudo_command_executed"
+          }
+      } else if contains(.message, "New session") {
+          result, err = parse_regex(.message, r'^(?P<timestamp>\w+\s+\d+\s+\d+:\d+:\d+)\s+(?P<hostname>\S+)\s+(?P<program>\S+)\[(?P<pid>\d+)\]:\s+(?:New session\s+(?P<session_id>\d+)\s+of user\s+(?P<username>\S+)\.?|(?P<raw_message>.*))$')
+          if err != null {
+              log("No regex match for New session: " + err, level:"debug")
+              null
+          } else {
+              .timestamp = result.timestamp
+              .hostname = result.hostname
+              .program = result.program
+              .pid = to_int!(result.pid)
+              .appname = result.program
+              if result.session_id != null {
+                  .session_id = to_int!(result.session_id)
+                  .username = result.username
+                  .event_type = "new session"
+              } else {
+                  .log_details = result.raw_message
+              }
+          }
+      } else if contains(.message, "pam_unix") {
+          if contains(.message, "authentication failure") {
+              .event_type = "pam_unix_authentication_failure"
+              parsed = parse_regex!(.message, r'^(?P<timestamp>\w+\s+\d+\s+\d+:\d+:\d+)\s+(?P<hostname>\S+)\s+(?P<program>\S+)\[(?P<pid>\d+)\]:\s+(?P<pam_module>\S+)\((?P<pam_details>[^)]+)\):\s+(?P<failure>authentication failure);\s+logname=(?P<logname>\S*)\s+uid=(?P<uid>\d+)\s+euid=(?P<euid>\d+)\s+tty=(?P<tty>\S+)\s+ruser=(?P<ruser>\S*)\s+rhost=(?P<rhost>[\d\.]+)(?:\s+user=(?P<user>\S+))?$')
+              .timestamp = parsed.timestamp
+              .hostname = parsed.hostname
+              .program = parsed.program
+              .pid = to_int!(parsed.pid)
+              .appname = parsed.program
+              .pam_module = parsed.pam_module
+              .pam_details = parsed.pam_details
+              .reason = parsed.failure
+              .logname = parsed.logname
+              .uid = to_int!(parsed.uid)
+              .euid = to_int!(parsed.euid)
+              .tty = parsed.tty
+              .ruser = parsed.ruser
+              .rhost = parsed.rhost
+              if parsed.user != null {
+                  .user = parsed.user
+              }
+          } else {
+              .event_type = "pam_unix_check_pass"
+              parsed = parse_regex!(.message, r'^(?P<timestamp>\w+\s+\d+\s+\d+:\d+:\d+)\s+(?P<hostname>\S+)\s+(?P<program>\S+)\[(?P<pid>\d+)\]:\s+(?P<pam_module>\S+)\((?P<pam_details>[^)]+)\):\s+(?P<msg>.+)$')
+              .timestamp = parsed.timestamp
+              .hostname = parsed.hostname
+              .program = parsed.program
+              .pid = to_int!(parsed.pid)
+              .appname = parsed.program
+              .pam_module = parsed.pam_module
+              .pam_activity = parsed.pam_details
+              .reason = parsed.msg
+          }
+          del(.file)
+      } else if contains(.message, "PAM") && contains(.message, "authentication failure") {
+          parsed = parse_regex!(.message, r'^(?P<timestamp>\w+\s+\d+\s+\d+:\d+:\d+)\s+(?P<hostname>\S+)\s+(?P<program>\S+)\[(?P<pid>\d+)\]:\s+(?P<event>PAM\s+\d+\s+more\s+authentication\s+failures?);\s+logname=(?P<logname>\S*)\s+uid=(?P<uid>\d+)\s+euid=(?P<euid>\d+)\s+tty=(?P<tty>\S+)\s+ruser=(?P<ruser>\S*)\s+rhost=(?P<rhost>[\d\.]+)(?:\s+user=(?P<user>\S+))?$')
+          .timestamp = parsed.timestamp
+          .hostname = parsed.hostname
+          .program = parsed.program
+          .appname = parsed.program
+          .pid = to_int!(parsed.pid)
+          .event_type = parsed.event
+          .logname = parsed.logname
+          .uid = to_int!(parsed.uid)
+          .euid = to_int!(parsed.euid)
+          .tty = parsed.tty
+          .ruser = parsed.ruser
+          .rhost = parsed.rhost
+          if parsed.user != null {
+              .user = parsed.user
+          }
+          del(.file)
+      } else if contains(.message, "Received disconnect from") {
+          parsed = parse_regex!(.message, r'^(?P<month>\w{3})\s+(?P<day>\d{1,2})\s+(?P<time>\d{2}:\d+:\d+)\s+(?P<hostname>\S+)\s+(?P<program>\S+)\[(?P<pid>\d+)\]:\s+(?:Received disconnect from (?P<disconnect_ip>\d{1,3}(?:\.\d{1,3}){3}) port (?P<port>\d+):(?P<disconnect_code>\d+):\s*(?P<reason>.+)|(?P<msg>.+))$')
+          .timestamp = parsed.month + " " + parsed.day + " " + parsed.time
+          .hostname = parsed.hostname
+          .program = parsed.program
+          .appname = parsed.program
+          .pid = to_int!(parsed.pid)
+          if parsed.disconnect_ip != null {
+              .disconnect_ip = parsed.disconnect_ip
+              .port = to_int!(parsed.port)
+              .disconnect_code = to_int!(parsed.disconnect_code)
+              .reason = parsed.reason
+          } else {
+              .unparsed = parsed.msg
+          }
+          .event_type = "disconnect"
+          del(.file)
+      } else if contains(.message, "Server listening on") {
+          if contains(.message, "0.0.0.0") {
+              parsed = parse_regex!(.message, r'^(?P<timestamp>\w+\s+\d+\s+\d+:\d+:\d+)\s+(?P<hostname>\S+)\s+(?P<program>\S+)\[(?P<pid>\d+)\]:\s+Server listening on (?P<ip>\d{1,3}(?:\.\d{1,3}){3}) port (?P<port>\d+)\.$')
+              .timestamp = parsed.timestamp
+              .hostname = parsed.hostname
+              .program = parsed.program
+              .appname = parsed.program
+              .pid = to_int!(parsed.pid)
+              .source_ip = parsed.ip
+              .port = to_int!(parsed.port)
+              .event_type = "server_listening_ipv4"
+              .ipv_version = "IPv4"
+              del(.file)
+          } else if contains(.message, "::") {
+              parsed = parse_regex!(.message, r'^(?P<timestamp>\w+\s+\d+\s+\d+:\d+:\d+)\s+(?P<hostname>\S+)\s+(?P<program>\S+)\[(?P<pid>\d+)\]:\s+Server listening on (?P<ip>(?:(?:[0-9A-Fa-f]{1,4}:){7}[0-9A-Fa-f]{1,4}|::)) port (?P<port>\d+)\.$')
+              .timestamp = parsed.timestamp
+              .hostname = parsed.hostname
+              .program = parsed.program
+              .appname = parsed.program
+              .pid = to_int!(parsed.pid)
+              .source_ip = parsed.ip
+              .port = to_int!(parsed.port)
+              .event_type = "server_listening_ipv6"
+              .ipv_version = "IPv6"
+              del(.file)
+          }
+      } else if contains(.message, "Received signal") {
+          result, err = parse_regex(.message, r'^(?P<timestamp>\w+\s+\d+\s+\d+:\d+:\d+)\s+(?P<hostname>\S+)\s+(?P<program>\S+)\[(?P<pid>\d+)\]:\s+Received signal (?P<signal>\d+); (?P<msg>.+)$')
+          if err != null {
+              log("No regex match for Received signal: " + err, level:"debug")
+              null
+          } else {
+              .timestamp = result.timestamp
+              .hostname = result.hostname
+              .program = result.program
+              .appname = result.program
+              .pid = to_int!(result.pid)
+              .signal = to_int!(result.signal)
+              .reason = result.msg
+              .event_type = "ssh_signal"
+          }
+          del(.file)
+      } else {
+          .event_type = "unknown"
+          del(.file)
+      }
+
+sinks:
+  output:
+    type: "file"
+    inputs:
+      - "parse_logs"
+    path: "vector_parsed_logs.json"
+    encoding:
+      codec: "json"
