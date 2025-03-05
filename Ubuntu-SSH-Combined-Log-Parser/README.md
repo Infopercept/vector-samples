@@ -1,81 +1,103 @@
 # Ubuntu SSH Combined Log Parser
 
-This Vector configuration provides comprehensive parsing of SSH-related log entries from Ubuntu system logs. It handles various SSH events including login attempts, connections, disconnections, and authentication events.
+A Vector configuration for parsing Ubuntu SSH and authentication-related log messages.
 
 ## Overview
 
-The configuration processes authentication logs to extract detailed information about SSH activities, user sessions, and system authentication events. It parses multiple event types and structures them into a standardized JSON format.
+This configuration uses Vector to parse various SSH and authentication-related log messages from Ubuntu systems. It supports parsing multiple log patterns including login attempts, connections, disconnections, session management, and user/group modifications.
 
 ## Supported Event Types
 
-The parser handles the following types of events:
-- Login attempts
-- Connection resets
-- User disconnections
-- Failed password attempts
-- Invalid user attempts
-- Successful password authentications
-- Session management (open/close)
-- User/Group modifications
-- PAM authentication events
-- SSH server events
-- Signal handling events
+### SSH Authentication Events
+1. `attempted_login` - Login attempts with UID and TTY details
+2. `sshd_accepted_password` - Successful password authentication events 
+3. `sshd_authentication_failure` - General authentication failures
+4. `sshd_check_pass` - Password check events
+5. `sshd_failed_password` - Failed password authentication attempts
+6. `sshd_failed_password_repeated` - Multiple failed password attempts
+7. `sshd_invalid_user` - Invalid user login attempts
 
-## Input Format
+### SSH Connection Events
+8. `sshd_connection_closed` - Connection closure events
+9. `sshd_connection_reset` - Connection reset events
+10. `sshd_disconnect` - Client disconnect events
+11. `sshd_recieved_disconnect` - Server received disconnect events
+12. `sshd_server_listening_IPv4` - IPv4 listening events
+13. `sshd_server_listening_IPv6` - IPv6 listening events
+14. `sshd_terminating` - SSH daemon termination events
 
-The parser expects syslog format messages. Examples of supported log entries:
+### Session Management
+15. `sshd_session_closed` - SSH session closure events
+16. `sshd_session_opened` - SSH session creation events
+17. `systemd_new_session` - New systemd session events
+18. `systemd_session_logged_out` - Session logout events
+19. `systemd_session_opened` - Systemd session opened events
+20. `systemd_session_removed` - Session removal events
 
-```
-Nov 15 11:22:33 hostname sshd[1234]: Attempted login by user1 (UID: 1000) on pts/0
-Nov 15 11:22:33 hostname sshd[1234]: Failed password for invalid user test from 192.168.1.100 port 54321 ssh2
-Nov 15 11:22:33 hostname sshd[1234]: Accepted password for user1 from 192.168.1.100 port 54321 ssh2
-```
+### PAM Authentication
+21. `sshd_pam_authentication_failure` - PAM-specific authentication failures
 
-## Configuration Details
+### Sudo Events
+22. `sudo_command_executed` - Sudo command execution tracking
+23. `sudo_session_closed` - Sudo session closure events
+24. `sudo_session_opened` - Sudo session creation events
 
-The configuration uses Vector's remap transforms to:
-1. Match various log patterns using regex
-2. Extract relevant fields like timestamp, hostname, and program details
-3. Parse event-specific information
-4. Structure data into consistent JSON format
-5. Categorize events by type
+### User Management
+25. `useradd_new_user_group` - New user/group creation events
+26. `usermod_add_user_to_group` - Group membership modifications
+27. `usermod_change_user_shell` - User shell change events
 
-### Sample Output
+## Common Fields
 
-The parsed log entries will be written to `vector_parsed_logs.json` in the following format:
+All parsed events include these standard fields:
+- `timestamp` - Event timestamp
+- `hostname` - System hostname
+- `program` - Source program name
+- `appname` - Application identifier
+- `pid` - Process ID
 
+## Event-Specific Fields
+
+Events may include additional fields based on type:
+- User Information: `username`, `uid`, `target_user`, `target_uid`
+- Network Details: `source_ip`, `port`, `protocol`
+- Session Info: `session_id`, `tty`
+- Authentication: `pam_module`, `pam_activity`
+- Command Details: `command`, `pwd` (for sudo events)
+- Group Management: `group`, `group_type`
+
+## Configuration
+
+### Requirements
+- Vector v0.44+
+- Read access to auth.log files
+- Write permissions for output directory
+
+### Setup
+1. Place `vector.yaml` in Vector configuration directory
+2. Ensure Vector has auth.log access
+3. Configure output path as needed
+4. Start Vector service
+
+## Output Format
+
+Example output:
 ```json
 {
-  "timestamp": "Nov 15 11:22:33",
+  "timestamp": "Feb 20 10:41:42",
   "hostname": "ubuntu-server",
   "program": "sshd",
   "appname": "sshd",
-  "pid": 1234,
-  "event_type": "Failed password",
-  "username": "test",
+  "pid": 3087,
+  "event_type": "sshd_accepted_password",
+  "username": "user123",
   "source_ip": "192.168.1.100",
-  "port": 54321,
+  "port": 62721,
   "protocol": "ssh2"
 }
 ```
 
-## Usage
-
-1. Ensure Vector is installed on your system
-2. Copy the configuration to your Vector configuration directory
-3. Update the input path to point to your auth.log file
-4. Update the output path as needed
-5. Restart Vector to apply the changes
-
-## Requirements
-
-- Vector v0.44 or higher
-- Access to Ubuntu authentication logs
-- Write permissions for the output directory
-
-## Notes
-
-- The parser handles a wide range of SSH and authentication-related events
-- Each event type has specific fields relevant to that event
-- Unknown log formats are marked with event_type "unknown"
-- Make sure log formats match your system's configuration
+## Error Handling
+- Unmatched patterns are marked as `event_type: "unknown"`
+- Parse failures are logged at debug level
+- Invalid field values are handled gracefully
