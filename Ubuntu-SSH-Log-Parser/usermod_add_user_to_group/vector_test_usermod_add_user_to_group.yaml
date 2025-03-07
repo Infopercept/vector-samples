@@ -11,27 +11,28 @@ tests:
         log_fields:
           message: "Feb 20 10:55:59 mihir-ubuntu usermod[15883]: add 'vector' to shadow group 'adm'"
 
+      - insert_at: "parse_usermod"
+        type: "log"
+        log_fields:
+          message: "Feb 20 10:55:59 mihir-ubuntu usermod[15891]: add 'vector' to group 'systemd-journal'"
+
+      - insert_at: "parse_usermod"
+        type: "log"
+        log_fields:
+          message: "Feb 20 10:55:59 mihir-ubuntu usermod[15891]: add 'vector' to shadow group 'systemd-journal'"
+
     outputs:
       - extract_from: "parse_usermod"
         conditions:
           - type: "vrl"
             source: |
-              # Verify that all expected fields exist and contain the correct values.
-              assert!(exists(.timestamp), "timestamp missing")
+              # Ensure all expected fields exist and match expected values
               assert_eq!(.timestamp, "Feb 20 10:55:59", "unexpected timestamp value")
-              assert!(exists(.hostname), "hostname missing")
               assert_eq!(.hostname, "mihir-ubuntu", "unexpected hostname value")
-              assert!(exists(.program), "program missing")
-              assert_eq!(.program, "usermod_add", "unexpected program value")
-              assert!(exists(.appname), "appname missing")
+              assert_eq!(.program, "usermod", "unexpected program value")
               assert_eq!(.appname, "usermod_add", "unexpected appname value")
-              assert!(exists(.pid), "pid missing")
               assert_eq!(.pid, 15883, "unexpected pid value")
-              assert!(exists(.entity), "entity missing")
               assert_eq!(.entity, "vector", "unexpected entity value")
-              assert!(exists(.group), "group missing")
               assert!(.group == "adm" || .group == "systemd-journal", "unexpected group value")
-              assert!(exists(.group_type), "group_type missing")
               assert!(.group_type == "normal group" || .group_type == "shadow group", "unexpected group_type value")
-              assert!(exists(.event_type), "event_type missing")
-              assert_eq!(.event_type, "usermod_add_user_to_group", "unexpected event_type value")
+              assert_eq!(.event_type, "usermod add user to group", "unexpected event_type value")

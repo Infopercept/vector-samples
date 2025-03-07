@@ -29,4 +29,5 @@ tests:
               assert!(exists(.reason), "reason missing")
               assert_eq!(.reason, "check pass; user unknown", "unexpected reason value")
               assert!(exists(.event_type), "event_type missing")
-              assert_eq!(.event_type, "pam_unix_check_pass", "unexpected event_type value")
+              assert_eq!(.event_type, "pam unix check pass", "unexpected event_type value")
+

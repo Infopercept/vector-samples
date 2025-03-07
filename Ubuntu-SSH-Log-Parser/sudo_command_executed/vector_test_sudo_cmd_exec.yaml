@@ -29,5 +29,6 @@ tests:
               assert!(exists(.command), "command missing")
               assert_eq!(.command, "/usr/sbin/usermod -s /usr/sbin/nologin test", "unexpected command value")
               assert!(exists(.event_type), "event_type missing")
-              assert_eq!(.event_type, "sudo_command_executed", "unexpected event_type value")
+              assert_eq!(.event_type, "sudo command executed", "unexpected event_type value")
+
          

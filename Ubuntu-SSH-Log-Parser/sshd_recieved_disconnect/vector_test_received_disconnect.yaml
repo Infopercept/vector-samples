@@ -20,4 +20,4 @@ tests:
               assert_eq!(.port, 62721, "unexpected port value")
               assert_eq!(.disconnect_code, 11, "unexpected disconnect_code value")
               assert_eq!(.reason, "disconnected by user", "unexpected reason value")
-              assert_eq!(.event_type, "disconnect", "unexpected event_type value")
+              assert_eq!(.event_type, "recieved disconnect by user", "unexpected event_type value")

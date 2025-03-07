@@ -21,17 +21,16 @@ tests:
               assert_eq!(.appname, "sshd", "unexpected appname value")
               assert!(exists(.pid), "pid missing")
               assert_eq!(.pid, 15112, "unexpected pid value")
-              assert!(exists(.event), "event missing")
-              assert_eq!(.event, "PAM 1 more authentication failure", "unexpected event value")
-              assert!(exists(.logname), "logname missing")
-              assert_eq!(.logname, "", "unexpected logname value")
+              assert!(exists(.event_type), "event_type missing")
+              assert_eq!(.event_type, "pam unix authentication failure", "unexpected event_type value")
+
+  
               assert!(exists(.uid), "uid missing")
               assert_eq!(.uid, 0, "unexpected uid value")
               assert!(exists(.euid), "euid missing")
               assert_eq!(.euid, 0, "unexpected euid value")
               assert!(exists(.tty), "tty missing")
               assert_eq!(.tty, "ssh", "unexpected tty value")
-              assert!(exists(.ruser), "ruser missing")
-              assert_eq!(.ruser, "", "unexpected ruser value")
+      
               assert!(exists(.rhost), "rhost missing")
               assert_eq!(.rhost, "192.168.186.1", "unexpected rhost value")

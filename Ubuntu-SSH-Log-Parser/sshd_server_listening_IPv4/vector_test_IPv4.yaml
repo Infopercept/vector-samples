@@ -26,6 +26,7 @@ tests:
               assert!(exists(.port), "port missing")
               assert_eq!(.port, 22, "unexpected port value")
               assert!(exists(.event_type), "event_type missing")
-              assert_eq!(.event_type, "server_listening_ipv4", "unexpected event_type value")
+              assert_eq!(.event_type, "server listening ipv4", "unexpected event_type value")
+
               assert!(exists(.ipv_version), "ipv_version missing")
               assert_eq!(.ipv_version, "IPv4", "unexpected ipv_version value")

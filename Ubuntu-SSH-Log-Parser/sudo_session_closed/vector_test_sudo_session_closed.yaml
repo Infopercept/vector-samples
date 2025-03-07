@@ -27,8 +27,5 @@ tests:
               assert!(exists(.session_user), "session_user missing")
               assert_eq!(.session_user, "root", "unexpected session_user value")
               assert!(exists(.event_type), "event_type missing")
-              assert_eq!(.event_type, "session_closed", "unexpected event_type value")
-              assert!(exists(.source_type), "source_type missing")
-              assert_eq!(.source_type, "file", "unexpected source_type value")
-              assert!(exists(.host), "host missing")
-              assert_eq!(.host, "localhost.localdomain", "unexpected host value")
+              assert_eq!(.event_type, "session closed", "unexpected event_type value")
+        

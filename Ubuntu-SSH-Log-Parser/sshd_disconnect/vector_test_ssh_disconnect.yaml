@@ -29,4 +29,5 @@ tests:
               assert!(exists(.port), "port missing")
               assert_eq!(.port, 62721, "unexpected port value")
               assert!(exists(.event_type), "event_type missing")
-              assert_eq!(.event_type, "Disconnected", "unexpected event_type value")
+              assert_eq!(.event_type, "user disconnected", "unexpected event_type value")
+

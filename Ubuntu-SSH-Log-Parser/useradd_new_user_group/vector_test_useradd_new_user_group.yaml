@@ -34,7 +34,8 @@ tests:
               assert!(exists(.gid), "gid missing")
               assert_eq!(.gid, 998, "unexpected gid value")
               assert!(exists(.event_type), "event_type missing")
-              assert_eq!(.event_type, "useradd_event", "unexpected event_type value")
+              assert_eq!(.event_type, "useradd event", "unexpected event_type value")
+
 
       - extract_from: "parse_useradd"
         conditions:
@@ -66,4 +67,5 @@ tests:
               assert!(exists(.from), "from missing")
               assert_eq!(.from, "/dev/pts/2", "unexpected from value")
               assert!(exists(.event_type), "event_type missing")
-              assert_eq!(.event_type, "useradd_event", "unexpected event_type value")
+              assert_eq!(.event_type, "useradd event", "unexpected event_type value")
+
