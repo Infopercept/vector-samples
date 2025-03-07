@@ -2,41 +2,43 @@ data_dir: "/var/lib/vector"
 
 sources:
   auth_logs:
-    type: "file"
+    type: file
     include:
       - "auth.log"
-    start_at_beginning: true
+    ignore_checkpoints: true
+    read_from: beginning
 
 transforms:
   parse_auth_logs:
-    type: "remap"
+    type: remap
     inputs:
-      - "auth_logs"
+      - auth_logs
     source: |
-      parsed = parse_regex!(
-        .message,
-        r'^(?P<timestamp>\w+\s+\d+\s+\d+:\d+:\d+)\s+(?P<hostname>\S+)\s+(?P<appname>\S+)\[(?P<pid>\d+)\]:\s+(?P<pam_module>\S+)\((?P<pam_activity>[^)]+)\):\s+(?P<event_type>session opened) for user (?P<username>\S+)\(uid=(?P<target_uid>\d+)\)\s+by\s+\(uid=(?P<actor_uid>\d+)\)$'
-      )
-      
-      .timestamp    = parsed.timestamp
-      .hostname     = parsed.hostname
-      .appname      = parsed.appname
-      .program      = parsed.appname
-      .pid          = to_int!(parsed.pid)
-      .pam_module   = parsed.pam_module
-      .pam_activity = parsed.pam_activity
-      .event_type   = parsed.event_type
-      .username     = parsed.username
-      .target_uid   = to_int!(parsed.target_uid)
-      .actor_uid    = to_int!(parsed.actor_uid)
-      
+      pattern = r'^(?P<timestamp>\w+\s+\d{1,2}\s+\d+:\d+:\d+)\s+(?P<hostname>\S+)\s+(?P<appname>\S+)\[(?P<pid>\d+)\]:\s+(?P<pam_module>\S+)\((?P<pam_activity>[^)]+)\):\s+session opened for user\s+(?P<username>\S+)\(uid=(?P<target_uid>\d+)\)\s+by\s+\(uid=(?P<actor_uid>\d+)\)$'
+      parsed = parse_regex!(.message, pattern)
+      if parsed != null {
+        .timestamp = parsed.timestamp
+        .hostname = parsed.hostname
+        .appname = parsed.appname
+        .program = parsed.appname
+        .pid = to_int!(parsed.pid)
+        .pam_module = parsed.pam_module
+        .pam_activity = parsed.pam_activity
+        .username = parsed.username
+        .target_uid = to_int!(parsed.target_uid)
+        .actor_uid = to_int!(parsed.actor_uid)
+        .event_type = "session opened"
+        . = compact(.)
+      } else {
+        log("Failed to parse auth log", level: "error")
+      }
       del(.file)
 
 sinks:
   parsed_syslog:
-    type: "file"
+    type: file
     inputs:
-      - "parse_auth_logs"
+      - parse_auth_logs
     path: "vector_parsed_log.json"
     encoding:
-      codec: "json"
+      codec: json

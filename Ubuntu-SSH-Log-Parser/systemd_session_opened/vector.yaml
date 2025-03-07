@@ -2,45 +2,45 @@ data_dir: "/var/lib/vector"
 
 sources:
   auth_logs:
-    type: "file"
+    type: file
     include:
       - "auth.log"
-    start_at_beginning: true
+    ignore_checkpoints: true
+    read_from: beginning
 
 transforms:
   parse_systemd_session_opened:
-    type: "remap"
+    type: remap
     inputs:
       - auth_logs
     source: |
-      # Combined regex to parse syslog header and PAM details.
-      pattern = r'^(?P<timestamp>\w+\s+\d+\s+\d+:\d+:\d+)\s+(?P<hostname>\S+)\s+(?P<program>\S+):\s+(?:(?P<pam_module>\S+)\((?P<pam_activity>[^)]+)\):\s+(?P<event>session opened)\s+for\s+user\s+(?P<username>\S+)\(uid=(?P<target_uid>\d+)\)\s+by\s+\(uid=(?P<actor_uid>\d+)\)|(?P<log_message>.*))$'
+      pattern = r'^(?P<timestamp>\w+\s+\d{1,2}\s+\d+:\d+:\d+)\s+(?P<hostname>\S+)\s+(?P<program>\S+):\s+(?:(?P<pam_module>\S+)\((?P<pam_activity>[^)]+)\):\s+session opened\s+for\s+user\s+(?P<username>\S+)\(uid=(?P<target_uid>\d+)\)\s+by\s+\(uid=(?P<actor_uid>\d+)\)|(?P<log_message>.*))$'
       parsed = parse_regex!(.message, pattern)
-
-      .timestamp = parsed.timestamp
-      .hostname = parsed.hostname
-      .program = parsed.program
-      .appname = parsed.program
-
-      if parsed.event != null {
+      if parsed != null {
+        .timestamp = parsed.timestamp
+        .hostname = parsed.hostname
+        .program = parsed.program
+        .appname = parsed.program
         .pam_module = parsed.pam_module
         .pam_activity = parsed.pam_activity
-        .event_type = parsed.event
         .username = parsed.username
         .target_uid = to_int!(parsed.target_uid)
         .actor_uid = to_int!(parsed.actor_uid)
+        .event_type = "session opened"
+        if parsed.username == null {
+          .log_details = parsed.log_message
+        }
+        . = compact(.)
       } else {
-        .log_details = parsed.log_message
+        log("Failed to parse systemd session opened log", level: "error")
       }
-
-      # Remove the automatically added "file" field.
       del(.file)
 
 sinks:
   parsed_systemd_session_opened:
-    type: "file"
+    type: file
     inputs:
       - parse_systemd_session_opened
     path: "vector_parsed_systemd_session_opened.json"
     encoding:
-      codec: "json"
+      codec: json

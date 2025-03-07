@@ -2,44 +2,45 @@ data_dir: "/var/lib/vector"
 
 sources:
   auth_logs:
-    type: "file"
+    type: file
     include:
       - "auth.log"
-    start_at_beginning: true
+    ignore_checkpoints: true
+    read_from: beginning
 
 transforms:
   parse_session_closed:
-    type: "remap"
+    type: remap
     inputs:
-      - "auth_logs"
+      - auth_logs
     source: |
-      # Single regex pattern to parse both syslog header and session closed details
-      pattern = r'^(?P<timestamp>\w+\s+\d+\s+\d+:\d+:\d+)\s+(?P<hostname>\S+)\s+(?P<program>\S+)\[(?P<pid>\d+)\]:\s+(?:(?P<pam_module>\S+)\((?P<pam_activity>[^)]+)\):\s+(?P<event_type>session closed) for user (?P<username>\S+)|(?P<raw_message>.+))$'
+      pattern = r'^(?P<timestamp>\w+\s+\d{1,2}\s+\d+:\d+:\d+)\s+(?P<hostname>\S+)\s+(?P<program>\S+)\[(?P<pid>\d+)\]:\s+(?:(?P<pam_module>\S+)\((?P<pam_activity>[^)]+)\):\s+session closed for user\s+(?P<username>\S+)|(?P<raw_message>.*))$'
       parsed = parse_regex!(.message, pattern)
-
-      .timestamp = parsed.timestamp
-      .hostname = parsed.hostname
-      .program = parsed.program
-      .appname = parsed.program
-      .pid = to_int!(parsed.pid)
-
-      if parsed.event_type != null {
-        .pam_module = parsed.pam_module
-        .pam_activity = parsed.pam_activity
-        .event_type = parsed.event_type
-        .username = parsed.username
+      if parsed != null {
+        .timestamp = parsed.timestamp
+        .hostname = parsed.hostname
+        .program = parsed.program
+        .appname = parsed.program
+        .pid = to_int!(parsed.pid)
+        if parsed.username != null {
+          .pam_module = parsed.pam_module
+          .pam_activity = parsed.pam_activity
+          .username = parsed.username
+          .event_type = "session closed"
+        } else {
+          .log_details = parsed.raw_message
+        }
+        . = compact(.)
       } else {
-        .log_details = parsed.raw_message
+        log("Failed to parse session closed log", level: "error")
       }
-
-      # Remove unnecessary fields
       del(.file)
 
 sinks:
   parsed_syslog:
-    type: "file"
+    type: file
     inputs:
       - parse_session_closed
     path: "vector_parsed_log.json"
     encoding:
-      codec: "json"
+      codec: json

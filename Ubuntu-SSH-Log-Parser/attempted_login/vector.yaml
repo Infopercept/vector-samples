@@ -4,36 +4,40 @@ sources:
   auth_logs:
     type: "file"
     include:
-      - "auth.log" 
-    start_at_beginning: true
+      - "auth.log"
+    ignore_checkpoints: true
+    read_from: beginning
 
 transforms:
   parse_nologin:
     type: "remap"
     inputs:
-      - "auth_logs"
+      - auth_logs
     source: |
-      parsed = parse_regex!(
-        .message,
-        r'^(?P<timestamp>\w+\s+\d+\s+\d+:\d+:\d+)\s+(?P<hostname>\S+)\s+(?P<program>\S+):\s+Attempted login by\s+(?P<username>\S+)\s+\(UID:\s+(?P<uid>\d+)\)\s+on\s+(?P<tty>\S+)$'
-      )
+      parsed = parse_regex!(.message,r'^(?P<timestamp>\w+\s+\d{1,2}\s+\d+:\d+:\d+)\s+(?P<hostname>\S+)\s+(?P<program>\S+):\s+Attempted login by\s+(?P<username>.*?)\s+\(UID:\s+(?P<uid>\d+)\)\s+on\s+(?P<tty>\S+)\s*$')
       
-      .timestamp   = parsed.timestamp
-      .hostname    = parsed.hostname
-      .program     = parsed.program
-      .appname     = parsed.program
-      .username    = parsed.username
-      .user_uid    = to_int!(parsed.uid)
-      .tty         = parsed.tty
-      .event_type  = "attempted_login"
-
+      if parsed != null {
+        .timestamp  = parsed.timestamp
+        .hostname   = parsed.hostname
+        .program    = parsed.program
+        .appname    = parsed.program
+        .username   = parsed.username
+        .user_uid   = to_int!(parsed.uid)
+        .tty        = parsed.tty
+        .event_type = "attempted login"
+        # Remove any empty fields dynamically
+        . = compact(.)
+      } else {
+        log("Failed to parse nologin log", level: "error")
+      }
+      
       del(.file)
 
 sinks:
   output:
     type: "file"
     inputs:
-      - "parse_nologin"
+      - parse_nologin
     path: "vector_parsed_nologin.json"
     encoding:
       codec: "json"

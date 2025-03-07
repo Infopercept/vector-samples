@@ -5,7 +5,8 @@ sources:
     type: file
     include:
       - "auth.log"
-    start_at_beginning: true
+    ignore_checkpoints: true
+    read_from: beginning
 
 transforms:
   parse_disconnect:
@@ -13,8 +14,7 @@ transforms:
     inputs:
       - disconnect_logs
     source: |
-      pattern = r'^(?P<month>\w{3})\s+(?P<day>\d{1,2})\s+(?P<time>\d{2}:\d{2}:\d{2})\s+(?P<hostname>\S+)\s+(?P<program>\S+)\[(?P<pid>\d+)\]:\s+(?:Received disconnect from (?P<disconnect_ip>\d{1,3}(?:\.\d{1,3}){3}) port (?P<port>\d+):(?P<disconnect_code>\d+):\s*(?P<reason>.+)|(?P<msg>.+))$'
-      parsed = parse_regex!(.message, pattern)
+      parsed = parse_regex!(.message, r'^(?P<month>\w{3})\s+(?P<day>\d{1,2})\s+(?P<time>\d{2}:\d{2}:\d{2})\s+(?P<hostname>\S+)\s+(?P<program>\S+)\[(?P<pid>\d+)\]:\s+(?:Received disconnect from (?P<disconnect_ip>\d{1,3}(?:\.\d{1,3}){3}) port (?P<port>\d+):(?P<disconnect_code>\d+):\s*(?P<reason>.+)|(?P<msg>.+))$'); 
       .timestamp = parsed.month + " " + parsed.day + " " + parsed.time
       .hostname = parsed.hostname
       .program = parsed.program
@@ -28,7 +28,7 @@ transforms:
       } else {
         .unparsed = parsed.msg
       }
-      .event_type = "disconnect"
+      .event_type = "recieved disconnect by user"
       del(.file)
 
 sinks:

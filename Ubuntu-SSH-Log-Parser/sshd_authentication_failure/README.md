@@ -11,7 +11,7 @@ The configuration detects and processes PAM authentication failure messages from
 The parser expects syslog messages in the following format:
 
 ```
-Aug 15 14:23:45 ubuntu-server sshd[12345]: pam_unix(sshd:auth): authentication failure; logname=root uid=0 euid=0 tty=ssh rhost=192.168.1.100 user=admin
+Feb 20 10:48:24 mihir-ubuntu sshd[15112]: pam_unix(sshd:auth): authentication failure; logname=js uid=0 euid=0 tty=ssh ruser= rhost=192.168.186.1
 ```
 
 ## Configuration Details
@@ -29,20 +29,20 @@ The parsed log entry will be written to `vector_parsed_auth_failure.json` in the
 
 ```json
 {
-  "timestamp": "Aug 15 14:23:45",
-  "hostname": "ubuntu-server",
+  "timestamp": "Feb 20 10:48:24",
+  "hostname": "mihir-ubuntu",
   "program": "sshd",
   "appname": "sshd",
-  "pid": 12345,
+  "pid": 15112,
   "pam_module": "pam_unix",
   "pam_details": "sshd:auth",
   "reason": "authentication failure",
-  "logname": "root",
+  "logname": "js",
   "uid": 0,
   "euid": 0,
   "tty": "ssh",
   "ruser": "",
-  "rhost": "192.168.1.100",
+  "rhost": "192.168.186.1",
   "user": "admin",
   "event_type": "pam_unix_authentication_failure"
 }

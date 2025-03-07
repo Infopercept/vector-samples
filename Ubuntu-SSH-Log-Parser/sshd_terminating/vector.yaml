@@ -2,18 +2,19 @@ data_dir: "/var/lib/vector"
 
 sources:
   ssh_logs:
-    type: "file"
+    type: file
     include:
       - "auth.log"
-    start_at_beginning: true
+    ignore_checkpoints: true
+    read_from: beginning
 
 transforms:
   parse_ssh:
-    type: "remap"
+    type: remap
     inputs:
-      - "ssh_logs"
+      - ssh_logs
     source: |
-      parsed = parse_regex!(.message, r'^(?P<timestamp>\w+\s+\d+\s+\d+:\d+:\d+)\s+(?P<hostname>\S+)\s+(?P<program>\S+)\[(?P<pid>\d+)\]:\s+Received signal (?P<signal>\d+); (?P<msg>.+)$')
+      parsed = parse_regex!(.message, r'^(?P<timestamp>\w+\s+\d{1,2}\s+\d+:\d+:\d+)\s+(?P<hostname>\S+)\s+(?P<program>\S+)\[(?P<pid>\d+)\]:\s+Received signal (?P<signal>\d+);\s+(?P<msg>.+)$')
       if parsed != null {
         .timestamp = parsed.timestamp
         .hostname = parsed.hostname
@@ -22,7 +23,8 @@ transforms:
         .pid = to_int!(parsed.pid)
         .signal = to_int!(parsed.signal)
         .reason = parsed.msg
-        .event_type = "ssh_signal"
+        .event_type = "ssh signal terminating"
+        . = compact(.)
       } else {
         log("Failed to parse log", level: "error")
       }
@@ -30,9 +32,9 @@ transforms:
 
 sinks:
   parsed_syslog:
-    type: "file"
+    type: file
     inputs:
       - parse_ssh
     path: "vector_parsed_log.json"
     encoding:
-      codec: "json"
+      codec: json
