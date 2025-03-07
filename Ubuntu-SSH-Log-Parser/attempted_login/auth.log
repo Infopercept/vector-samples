@@ -1,1 +1,2 @@
 Feb 20 10:42:06 mihir-ubuntu nologin: Attempted login by test (UID: 1001) on /dev/pts/1
+Feb   20 10:42:06    myhost nologin: Attempted login by test     (UID: 1001) on /dev/pts/1

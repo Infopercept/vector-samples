@@ -4,8 +4,9 @@ sources:
   server_logs:
     type: file
     include:
-      - "auth.log"  # File containing IPv6 logs
-    start_at_beginning: true
+      - "auth.log"
+    ignore_checkpoints: true
+    read_from: beginning
 
 transforms:
   parse_ipv6:
@@ -13,21 +14,22 @@ transforms:
     inputs:
       - server_logs
     source: |
-      parsed = parse_regex!(.message, r'^(?P<timestamp>\w+\s+\d+\s+\d+:\d+:\d+)\s+(?P<hostname>\S+)\s+(?P<program>\S+)\[(?P<pid>\d+)\]:\s+Server listening on (?P<ip>(?:(?:[0-9A-Fa-f]{1,4}:){7}[0-9A-Fa-f]{1,4}|::)) port (?P<port>\d+)\.$')
+      parsed = parse_regex!(.message, r'^(?P<timestamp>\w+\s+\d{1,2}\s+\d+:\d+:\d+)\s+(?P<hostname>\S+)\s+(?P<program>\S+)\[(?P<pid>\d+)\]:\s+Server listening on (?P<ip>(?:(?:[0-9A-Fa-f]{1,4}:){7}[0-9A-Fa-f]{1,4}|::)) port (?P<port>\d+)\.$')
       if parsed != null {
-        .timestamp  = parsed.timestamp
-        .hostname   = parsed.hostname
-        .program    = parsed.program
-        .appname    = parsed.program
-        .pid        = to_int!(parsed.pid)
-        .source_ip         = parsed.ip
-        .port       = to_int!(parsed.port)
-        .event_type = "server_listening_ipv6"
+        .timestamp = parsed.timestamp
+        .hostname = parsed.hostname
+        .program = parsed.program
+        .appname = parsed.program
+        .pid = to_int!(parsed.pid)
+        .source_ip = parsed.ip
+        .port = to_int!(parsed.port)
+        .event_type = "server listening ipv6"
         .ipv_version = "IPv6"
-        del(.file)
+        . = compact(.)
       } else {
         log("Failed to parse IPv6 log", level: "error")
       }
+      del(.file)
 
 sinks:
   ipv6_output:

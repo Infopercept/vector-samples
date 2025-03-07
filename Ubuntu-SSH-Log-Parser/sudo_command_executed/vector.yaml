@@ -2,41 +2,43 @@ data_dir: "/var/lib/vector"
 
 sources:
   auth_logs:
-    type: "file"
+    type: file
     include:
       - "auth.log"
-    start_at_beginning: true
+    ignore_checkpoints: true
+    read_from: beginning
 
 transforms:
   parse_sudo:
-    type: "remap"
+    type: remap
     inputs:
-      - "auth_logs"
+      - auth_logs
     source: |
-      pattern = r'^(?P<timestamp>\w+\s+\d+\s+\d+:\d+:\d+)\s+(?P<hostname>\S+)\s+sudo:\s+(?P<username>\S+)\s+:\s+TTY=(?P<tty>\S+)\s+;\s+PWD=(?P<pwd>\S+)\s+;\s+USER=(?P<target_user>\S+)\s+;\s+COMMAND=(?P<command>.*)\s*$'
+      pattern = r'^(?P<timestamp>\w+\s+\d{1,2}\s+\d+:\d+:\d+)\s+(?P<hostname>\S+)\s+(?P<program>\S+):\s+(?P<username>\S+)\s+:\s+TTY=(?P<tty>\S+)\s+;\s+PWD=(?P<pwd>\S+)\s+;\s+USER=(?P<target_user>\S+)\s+;\s+COMMAND=(?P<command>.*)\s*$'
       parsed, err = parse_regex(string!(.message), pattern)
       if err != null {
         log("No regex match for sudo log: " + err, level: "debug")
         null
       } else {
-        .timestamp   = parsed.timestamp
-        .hostname    = parsed.hostname
-        .program     = "sudo"
-        .appname     = "sudo"
-        .username    = parsed.username
-        .tty         = parsed.tty
-        .pwd         = parsed.pwd
+        .timestamp = parsed.timestamp
+        .hostname = parsed.hostname
+        .program = parsed.program
+        .appname = parsed.program
+        .username = parsed.username
+        .tty = parsed.tty
+        .pwd = parsed.pwd
         .target_user = parsed.target_user
-        .command     = parsed.command
-        .event_type  = "sudo_command_executed"
+        .command = parsed.command
+        .event_type = "sudo command executed"
+        . = compact(.)
       }
       del(.file)
 
 sinks:
   output:
-    type: "file"
+    type: file
     inputs:
-      - "parse_sudo"
+      - parse_sudo
     path: "vector_parsed_sudo.json"
     encoding:
-      codec: "json"
+      codec: json
