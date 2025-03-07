@@ -2,44 +2,44 @@ data_dir: "/var/lib/vector"
 
 sources:
   auth_logs:
-    type: "file"
+    type: file
     include:
       - "auth.log"
-    start_at_beginning: true
+    ignore_checkpoints: true
+    read_from: beginning
 
 transforms:
   parse_disconnect:
-    type: "remap"
+    type: remap
     inputs:
-      - "auth_logs"
+      - auth_logs
     source: |
-      # Single regex pattern to parse syslog header and disconnect details
-      pattern = r'^(?P<timestamp>\w+\s+\d+\s+\d+:\d+:\d+)\s+(?P<hostname>\S+)\s+(?P<program>\S+)\[(?P<pid>\d+)\]:\s+(?:Disconnected from user (?P<username>\S+)\s+(?P<source_ip>[\d\.]+) port (?P<port>\d+)|(?P<raw_message>.+))$'
-      parsed = parse_regex!(.message, pattern)
-
-      .timestamp = parsed.timestamp
-      .hostname = parsed.hostname
-      .program = parsed.program
-      .appname = parsed.program
-      .pid = to_int!(parsed.pid)
-
-      if parsed.username != null {
-        .event_type = "Disconnected"
-        .username = parsed.username
-        .disconnect_ip = parsed.source_ip
-        .port = to_int!(parsed.port)
+      parsed = parse_regex!(.message, r'^(?P<timestamp>\w+\s+\d{1,2}\s+\d+:\d+:\d+)\s+(?P<hostname>\S+)\s+(?P<program>\S+)\[(?P<pid>\d+)\]:\s+(?:Disconnected from user\s+(?P<username>\S+)\s+(?P<source_ip>[\d\.]+)\s+port\s+(?P<port>\d+)|(?P<raw_message>.+))$')
+      if parsed != null {
+        .timestamp  = parsed.timestamp
+        .hostname   = parsed.hostname
+        .program    = parsed.program
+        .appname    = parsed.program
+        .pid        = to_int!(parsed.pid)
+        if parsed.username != null {
+          .event_type    = "user disconnected"
+          .username      = parsed.username
+          .disconnect_ip = parsed.source_ip
+          .port          = to_int!(parsed.port)
+        } else {
+          .log_details = parsed.raw_message
+        }
+        . = compact(.)
       } else {
-        .log_details = parsed.raw_message
+        log("Failed to parse disconnect log", level: "error")
       }
-
-      # Remove unnecessary fields
       del(.file)
 
 sinks:
   output:
-    type: "file"
+    type: file
     inputs:
-      - "parse_disconnect"
+      - parse_disconnect
     path: "vector_parsed_log.json"
     encoding:
-      codec: "json"
+      codec: json

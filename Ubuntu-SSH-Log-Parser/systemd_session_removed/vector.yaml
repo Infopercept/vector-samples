@@ -2,35 +2,39 @@ data_dir: "/var/lib/vector"
 
 sources:
   auth_logs:
-    type: "file"
+    type: file
     include:
       - "auth.log"
-    start_at_beginning: true
+    ignore_checkpoints: true
+    read_from: beginning
 
 transforms:
   parse_session_removed:
-    type: "remap"
+    type: remap
     inputs:
-      - "auth_logs"
+      - auth_logs
     source: |
-      pattern = r'^(?P<timestamp>\w+\s+\d+\s+\d+:\d+:\d+)\s+(?P<hostname>\S+)\s+(?P<program>\S+)\[(?P<pid>\d+)\]:\s+Removed\s+session\s+(?P<session_id>\d+)\.$'
+      pattern = r'^(?P<timestamp>\w+\s+\d{1,2}\s+\d+:\d+:\d+)\s+(?P<hostname>\S+)\s+(?P<program>\S+)\[(?P<pid>\d+)\]:\s+Removed\s+session\s+(?P<session_id>\d+)\.$'
       parsed = parse_regex!(.message, pattern)
-
-      .timestamp = parsed.timestamp
-      .hostname = parsed.hostname
-      .program = parsed.program
-      .appname = parsed.program  # Added appname field
-      .pid = to_int!(parsed.pid)
-      .session_id = to_int!(parsed.session_id)
-      .event_type = "session_removed"
-
+      if parsed != null {
+        .timestamp = parsed.timestamp
+        .hostname = parsed.hostname
+        .program = parsed.program
+        .appname = parsed.program
+        .pid = to_int!(parsed.pid)
+        .session_id = to_int!(parsed.session_id)
+        .event_type = "session removed"
+        . = compact(.)
+      } else {
+        log("Failed to parse session removed log", level: "error")
+      }
       del(.file)
 
 sinks:
   output:
-    type: "file"
+    type: file
     inputs:
-      - "parse_session_removed"
+      - parse_session_removed
     path: "vector_parsed_session_removed.json"
     encoding:
-      codec: "json"
+      codec: json

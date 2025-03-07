@@ -2,42 +2,42 @@ data_dir: "/var/lib/vector"
 
 sources:
   auth_logs:
-    type: "file"
+    type: file
     include:
       - "auth.log"
-    start_at_beginning: true
+    ignore_checkpoints: true
+    read_from: beginning
 
 transforms:
   parse_connection_closed:
-    type: "remap"
+    type: remap
     inputs:
-      - "auth_logs"
+      - auth_logs
     source: |
-      # Regex pattern to parse the syslog header and "Connection closed by" details.
-      pattern = r'^(?P<timestamp>\w+\s+\d+\s+\d+:\d+:\d+)\s+(?P<hostname>\S+)\s+(?P<program>\S+)\[(?P<pid>\d+)\]:\s+Connection closed by\s+(?:(?P<user_type>invalid|authenticating)\s+user\s+)?(?P<username>\S+)\s+(?P<source_ip>[\d\.]+)\s+port\s+(?P<port>\d+)\s+\[(?P<status>[^\]]+)\]$'
-      parsed = parse_regex!(.message, pattern)
-      
-      .timestamp = parsed.timestamp
-      .hostname = parsed.hostname
-      .program = parsed.program
-      .appname = parsed.program
-      .pid = to_int!(parsed.pid)
-      
-      .event_type = "Connection closed"
-      .user_type = parsed.user_type
-      .username = parsed.username
-      .source_ip = parsed.source_ip
-      .port = to_int!(parsed.port)
-      .status = parsed.status
-      
-      # Remove fields that are not needed
+      parsed = parse_regex!(.message, r'^(?P<timestamp>\w+\s+\d{1,2}\s+\d+:\d+:\d+)\s+(?P<hostname>\S+)\s+(?P<program>\S+)\[(?P<pid>\d+)\]:\s+Connection closed by\s+(?:(?P<user_type>invalid|authenticating)\s+user\s+)?(?P<username>\S+)\s+(?P<source_ip>[\d\.]+)\s+port\s+(?P<port>\d+)\s+\[(?P<status>[^\]]+)\]$')
+      if parsed != null {
+        .timestamp  = parsed.timestamp
+        .hostname   = parsed.hostname
+        .program    = parsed.program
+        .appname    = parsed.program
+        .pid        = to_int!(parsed.pid)
+        .event_type = "connection closed"
+        .user_type  = parsed.user_type
+        .username   = parsed.username
+        .source_ip  = parsed.source_ip
+        .port       = to_int!(parsed.port)
+        .status     = parsed.status
+        . = compact(.)
+      } else {
+        log("Failed to parse connection closed log", level: "error")
+      }
       del(.file)
 
 sinks:
   output:
-    type: "file"
+    type: file
     inputs:
-      - "parse_connection_closed"
+      - parse_connection_closed
     path: "vector_parsed_log.json"
     encoding:
-      codec: "json"
+      codec: json

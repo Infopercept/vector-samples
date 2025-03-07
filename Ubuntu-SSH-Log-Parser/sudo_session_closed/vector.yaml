@@ -2,40 +2,39 @@ data_dir: "/var/lib/vector"
 
 sources:
   auth_logs:
-    type: "file"
+    type: file
     include:
       - "auth.log"
-    start_at_beginning: true
+    ignore_checkpoints: true
+    read_from: beginning
 
 transforms:
   parse_session_log:
-    type: "remap"
+    type: remap
     inputs:
-      - "auth_logs"
+      - auth_logs
     source: |
-      .original_message = .message
-      parsed = parse_regex!(
-        .original_message,
-        r'^(?P<timestamp>\w+\s+\d+\s+\d+:\d+:\d+)\s+(?P<hostname>\S+)\s+(?P<appname>\S+):\s+(?P<pam_module>\S+)\((?P<pam_activity>[^)]+)\):\s+session\s+closed\s+for\s+user\s+(?P<session_user>\S+)$'
-      )
-      .timestamp    = parsed.timestamp
-      .hostname     = parsed.hostname
-      .appname      = parsed.appname
-      .program      = parsed.appname
-      .pam_module   = parsed.pam_module
-      .pam_activity = parsed.pam_activity
-      .session_user = parsed.session_user
-      .event_type   = "session_closed"
-      .host         = "localhost.localdomain"
-      .source_type  = "file"
-      del(.original_message)
+      parsed = parse_regex!(.message, r'^(?P<timestamp>\w+\s+\d{1,2}\s+\d+:\d+:\d+)\s+(?P<hostname>\S+)\s+(?P<appname>\S+):\s+(?P<pam_module>\S+)\((?P<pam_activity>[^)]+)\):\s+session\s+closed\s+for\s+user\s+(?P<session_user>\S+)$')
+      if parsed != null {
+        .timestamp = parsed.timestamp
+        .hostname = parsed.hostname
+        .appname = parsed.appname
+        .program = parsed.appname
+        .pam_module = parsed.pam_module
+        .pam_activity = parsed.pam_activity
+        .session_user = parsed.session_user
+        .event_type = "session closed"
+        . = compact(.)
+      } else {
+        log("Failed to parse session closed log", level: "error")
+      }
       del(.file)
 
 sinks:
-  parsed_ssh_log:
+  parsed_syslog:
+    type: file
     inputs:
-      - "parse_session_log"
-    type: "file"
+      - parse_session_log
     path: "vector_parsed_log.json"
     encoding:
-      codec: "json"
+      codec: json

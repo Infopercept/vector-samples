@@ -2,41 +2,44 @@ data_dir: "/var/lib/vector"
 
 sources:
   auth_logs:
-    type: "file"
+    type: file
     include:
       - "auth.log"
-    start_at_beginning: true
+    ignore_checkpoints: true
+    read_from: beginning
 
 transforms:
   parse_failed_password:
-    type: "remap"
+    type: remap
     inputs:
-      - "auth_logs"
+      - auth_logs
     source: |
-      # Regex to parse syslog header and failed password details
-      pattern = r'^(?P<timestamp>\w+\s+\d+\s+\d+:\d+:\d+)\s+(?P<hostname>\S+)\s+(?P<program>\S+)\[(?P<pid>\d+)\]:\s+Failed password for (?:invalid user\s+)?(?P<username>\S+)\s+from\s+(?P<source_ip>[\d\.]+)\s+port\s+(?P<port>\d+)\s+(?P<protocol>\S+)$'
-      parsed = parse_regex!(.message, pattern)
-      
-      .timestamp = parsed.timestamp
-      .hostname = parsed.hostname
-      .program = parsed.program
-      .appname = parsed.program
-      .pid = to_int!(parsed.pid)
-      
-      .event_type = "Failed password"
-      .username = parsed.username
-      .source_ip = parsed.source_ip
-      .port = to_int!(parsed.port)
-      .protocol = parsed.protocol
-
-      # Remove unnecessary fields
+      parsed = parse_regex!(.message, r'^(?P<timestamp>\w+\s+\d{1,2}\s+\d+:\d+:\d+)\s+(?P<hostname>\S+)\s+(?P<program>\S+)\[(?P<pid>\d+)\]:\s+Failed password for\s+(?:(?P<user_status>(?:valid|invalid) user)\s+)?(?P<username>\S+)\s+from\s+(?P<source_ip>[\d\.]+)\s+port\s+(?P<port>\d+)\s+(?P<protocol>\S+)$')
+      if parsed != null {
+        .timestamp   = parsed.timestamp
+        .hostname    = parsed.hostname
+        .program     = parsed.program
+        .appname     = parsed.program
+        .pid         = to_int!(parsed.pid)
+        .event_type  = "failed password"
+        if parsed.user_status != null {
+          .user_status = if parsed.user_status == "invalid user" { "invalid" } else { "valid" }
+        }
+        .username    = parsed.username
+        .source_ip   = parsed.source_ip
+        .port        = to_int!(parsed.port)
+        .protocol    = parsed.protocol
+        . = compact(.)
+      } else {
+        log("Failed to parse failed password log", level: "error")
+      }
       del(.file)
 
 sinks:
   output:
-    type: "file"
+    type: file
     inputs:
-      - "parse_failed_password"
+      - parse_failed_password
     path: "vector_parsed_log.json"
     encoding:
-      codec: "json"
+      codec: json

@@ -5,7 +5,8 @@ sources:
     type: file
     include:
       - "auth.log"
-    start_at_beginning: true
+    ignore_checkpoints: true
+    read_from: beginning
 
 transforms:
   parse_auth_failure:
@@ -13,7 +14,7 @@ transforms:
     inputs:
       - auth_logs
     source: |
-      parsed = parse_regex!(.message, r'^(?P<timestamp>\w+\s+\d+\s+\d+:\d+:\d+)\s+(?P<hostname>\S+)\s+(?P<program>\S+)\[(?P<pid>\d+)\]:\s+(?P<pam_module>\S+)\((?P<pam_details>[^)]+)\):\s+(?P<failure>authentication failure);\s+logname=(?P<logname>\S*)\s+uid=(?P<uid>\d+)\s+euid=(?P<euid>\d+)\s+tty=(?P<tty>\S+)\s+ruser=(?P<ruser>\S*)\s+rhost=(?P<rhost>[\d\.]+)(?:\s+user=(?P<user>\S+))?$')
+      parsed = parse_regex!(.message, r'^(?P<timestamp>\w+\s+\d{1,2}\s+\d+:\d+:\d+)\s+(?P<hostname>\S+)\s+(?P<program>\S+)\[(?P<pid>\d+)\]:\s+(?P<pam_module>\S+)\((?P<pam_details>[^)]+)\):\s+(?P<failure>authentication failure);\s+logname=(?P<logname>.*?)\s+uid=(?P<uid>\d+)\s+euid=(?P<euid>\d+)\s+tty=(?P<tty>\S+)\s+ruser=(?P<ruser>.*?)\s+rhost=(?P<rhost>[\d\.]+)\s*(?:user=(?P<user>\S+))?\s*$')
       if parsed != null {
         .timestamp   = parsed.timestamp
         .hostname    = parsed.hostname
@@ -29,10 +30,12 @@ transforms:
         .tty         = parsed.tty
         .ruser       = parsed.ruser
         .rhost       = parsed.rhost
-        .event_type  = "pam_unix_authentication_failure"
-        if parsed.user != null {
+        .event_type  = "pam unix authentication failure"
+        if parsed.user != null && parsed.user != "" {
           .user = parsed.user
         }
+        # Remove empty fields dynamically
+        . = compact(.)
       } else {
         log("Failed to parse authentication failure log", level: "error")
       }
