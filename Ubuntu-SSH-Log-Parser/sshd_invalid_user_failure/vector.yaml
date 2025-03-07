@@ -1,0 +1,47 @@
+data_dir: "/var/lib/vector"
+
+sources:
+  auth_logs:
+    type: file
+    include:
+      - "auth.log"
+    ignore_checkpoints: true
+    read_from: beginning
+
+transforms:
+  parse_ssh_invalid:
+    type: remap
+    inputs:
+      - auth_logs
+    source: |
+      pattern = r'^(?P<timestamp>\w+\s+\d{1,2}\s+\d+:\d+:\d+)\s+(?P<hostname>\S+)\s+(?P<program>\S+)\[(?P<pid>\d+)\]:\s+Failed\s+(?P<auth_method>\S+)\s+for\s+(?P<user_type>invalid|valid)\s+user\s+(?P<username>\S+)\s+from\s+(?P<source_ip>[\d\.]+)\s+port\s+(?P<port>\d+)\s+(?P<protocol>\S+)$'
+      parsed = parse_regex!(.message, pattern)
+      if parsed != null {
+        .timestamp   = parsed.timestamp
+        .hostname    = parsed.hostname
+        .program     = parsed.program
+        .appname     = parsed.program
+        .pid         = to_int!(parsed.pid)
+        .auth_method = parsed.auth_method
+        .user_type   = parsed.user_type
+        .username    = parsed.username
+        .source_ip   = parsed.source_ip
+        .port        = to_int!(parsed.port)
+        .protocol    = parsed.protocol
+        .event_type  = "Invalid User Failure"
+        . = compact(.)
+      } else {
+        log("Failed to parse SSH invalid user log", level: "error")
+        .raw_message = .message
+        .event_type  = "unparsed_log"
+      }
+      del(.file)
+
+sinks:
+  parsed_ssh_invalid:
+    type: file
+    inputs:
+      - parse_ssh_invalid
+    path: "vector_parsed_ssh_invalid.json"
+    encoding:
+      codec: json
