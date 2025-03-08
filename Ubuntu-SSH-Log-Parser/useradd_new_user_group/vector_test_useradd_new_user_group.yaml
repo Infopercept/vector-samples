@@ -1,0 +1,71 @@
+tests:
+  - name: "Verify useradd log processing"
+    inputs:
+      - insert_at: "parse_useradd"
+        type: "log"
+        log_fields:
+          message: "Feb 20 10:55:53 mihir-ubuntu useradd[15862]: new group: name=vector, GID=998"
+
+      - insert_at: "parse_useradd"
+        type: "log"
+        log_fields:
+          message: "Feb 20 10:55:53 mihir-ubuntu useradd[15862]: new user: name=vector, UID=998, GID=998, home=/var/lib/vector, shell=/sbin/nologin, from=/dev/pts/2"
+
+    outputs:
+      - extract_from: "parse_useradd"
+        conditions:
+          - type: "vrl"
+            source: |
+              # Verify log for new group
+              assert!(exists(.timestamp), "timestamp missing")
+              assert_eq!(.timestamp, "Feb 20 10:55:53", "unexpected timestamp value")
+              assert!(exists(.hostname), "hostname missing")
+              assert_eq!(.hostname, "mihir-ubuntu", "unexpected hostname value")
+              assert!(exists(.program), "program missing")
+              assert_eq!(.program, "useradd", "unexpected program value")
+              assert!(exists(.appname), "appname missing")
+              assert_eq!(.appname, "useradd", "unexpected appname value")
+              assert!(exists(.pid), "pid missing")
+              assert_eq!(.pid, 15862, "unexpected pid value")
+              assert!(exists(.log_type), "log_type missing")
+              assert_eq!(.log_type, "new group", "unexpected log_type value")
+              assert!(exists(.name), "name missing")
+              assert_eq!(.name, "vector", "unexpected name value")
+              assert!(exists(.gid), "gid missing")
+              assert_eq!(.gid, 998, "unexpected gid value")
+              assert!(exists(.event_type), "event_type missing")
+              assert_eq!(.event_type, "useradd event", "unexpected event_type value")
+
+
+      - extract_from: "parse_useradd"
+        conditions:
+          - type: "vrl"
+            source: |
+              # Verify log for new user
+              assert!(exists(.timestamp), "timestamp missing")
+              assert_eq!(.timestamp, "Feb 20 10:55:53", "unexpected timestamp value")
+              assert!(exists(.hostname), "hostname missing")
+              assert_eq!(.hostname, "mihir-ubuntu", "unexpected hostname value")
+              assert!(exists(.program), "program missing")
+              assert_eq!(.program, "useradd", "unexpected program value")
+              assert!(exists(.appname), "appname missing")
+              assert_eq!(.appname, "useradd", "unexpected appname value")
+              assert!(exists(.pid), "pid missing")
+              assert_eq!(.pid, 15862, "unexpected pid value")
+              assert!(exists(.log_type), "log_type missing")
+              assert_eq!(.log_type, "new user", "unexpected log_type value")
+              assert!(exists(.name), "name missing")
+              assert_eq!(.name, "vector", "unexpected name value")
+              assert!(exists(.uid), "uid missing")
+              assert_eq!(.uid, 998, "unexpected uid value")
+              assert!(exists(.gid), "gid missing")
+              assert_eq!(.gid, 998, "unexpected gid value")
+              assert!(exists(.home), "home missing")
+              assert_eq!(.home, "/var/lib/vector", "unexpected home value")
+              assert!(exists(.shell), "shell missing")
+              assert_eq!(.shell, "/sbin/nologin", "unexpected shell value")
+              assert!(exists(.from), "from missing")
+              assert_eq!(.from, "/dev/pts/2", "unexpected from value")
+              assert!(exists(.event_type), "event_type missing")
+              assert_eq!(.event_type, "useradd event", "unexpected event_type value")
+

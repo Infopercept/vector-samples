@@ -1,0 +1,32 @@
+tests:
+  - name: "Verify IPv6 server listening log processing"
+    inputs:
+      - insert_at: "parse_ipv6"
+        type: "log"
+        log_fields:
+          message: "Feb 20 10:46:08 mihir-ubuntu sshd[3631]: Server listening on :: port 22."
+
+    outputs:
+      - extract_from: "parse_ipv6"
+        conditions:
+          - type: "vrl"
+            source: |
+              assert!(exists(.timestamp), "timestamp missing")
+              assert_eq!(.timestamp, "Feb 20 10:46:08", "unexpected timestamp value")
+              assert!(exists(.hostname), "hostname missing")
+              assert_eq!(.hostname, "mihir-ubuntu", "unexpected hostname value")
+              assert!(exists(.program), "program missing")
+              assert_eq!(.program, "sshd", "unexpected program value")
+              assert!(exists(.appname), "appname missing")
+              assert_eq!(.appname, "sshd", "unexpected appname value")
+              assert!(exists(.pid), "pid missing")
+              assert_eq!(.pid, 3631, "unexpected pid value")
+              assert!(exists(.source_ip), "source_ip missing")
+              assert_eq!(.source_ip, "::", "unexpected source_ip value")
+              assert!(exists(.port), "port missing")
+              assert_eq!(.port, 22, "unexpected port value")
+              assert!(exists(.event_type), "event_type missing")
+              assert_eq!(.event_type, "server listening ipv6", "unexpected event_type value")
+
+              assert!(exists(.ipv_version), "ipv_version missing")
+              assert_eq!(.ipv_version, "IPv6", "unexpected ipv_version value")

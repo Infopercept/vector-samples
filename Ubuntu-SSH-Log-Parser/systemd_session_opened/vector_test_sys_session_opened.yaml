@@ -1,0 +1,34 @@
+tests:
+  - name: "Verify systemd session opened parsing"
+    inputs:
+      - insert_at: "parse_systemd_session_opened"
+        type: "log"
+        log_fields:
+          message: "Feb 20 10:41:42 mihir-ubuntu systemd: pam_unix(systemd-user:session): session opened for user test(uid=1001) by (uid=0)"
+
+    outputs:
+      - extract_from: "parse_systemd_session_opened"
+        conditions:
+          - type: "vrl"
+            source: |
+              # Ensure expected fields exist and have correct values
+              assert!(exists(.timestamp), "timestamp missing")
+              assert_eq!(.timestamp, "Feb 20 10:41:42", "unexpected timestamp value")
+              assert!(exists(.hostname), "hostname missing")
+              assert_eq!(.hostname, "mihir-ubuntu", "unexpected hostname value")
+              assert!(exists(.program), "program missing")
+              assert_eq!(.program, "systemd", "unexpected program value")
+              assert!(exists(.appname), "appname missing")
+              assert_eq!(.appname, "systemd", "unexpected appname value")
+              assert!(exists(.pam_module), "pam_module missing")
+              assert_eq!(.pam_module, "pam_unix", "unexpected pam_module value")
+              assert!(exists(.pam_activity), "pam_activity missing")
+              assert_eq!(.pam_activity, "systemd-user:session", "unexpected pam_activity value")
+              assert!(exists(.event_type), "event_type missing")
+              assert_eq!(.event_type, "session opened", "unexpected event_type value")
+              assert!(exists(.username), "username missing")
+              assert_eq!(.username, "test", "unexpected username value")
+              assert!(exists(.target_uid), "target_uid missing")
+              assert_eq!(.target_uid, 1001, "unexpected target_uid value")
+          
+        

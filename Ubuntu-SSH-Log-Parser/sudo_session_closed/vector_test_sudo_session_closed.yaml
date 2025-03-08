@@ -1,0 +1,31 @@
+tests:
+  - name: "Verify sudo session closed parsing"
+    inputs:
+      - insert_at: "parse_session_log"
+        type: "log"
+        log_fields:
+          message: "Feb 20 10:41:34 mihir-ubuntu sudo: pam_unix(sudo:session): session closed for user root"
+
+    outputs:
+      - extract_from: "parse_session_log"
+        conditions:
+          - type: "vrl"
+            source: |
+              # Ensure expected fields exist and have correct values
+              assert!(exists(.timestamp), "timestamp missing")
+              assert_eq!(.timestamp, "Feb 20 10:41:34", "unexpected timestamp value")
+              assert!(exists(.hostname), "hostname missing")
+              assert_eq!(.hostname, "mihir-ubuntu", "unexpected hostname value")
+              assert!(exists(.appname), "appname missing")
+              assert_eq!(.appname, "sudo", "unexpected appname value")
+              assert!(exists(.program), "program missing")
+              assert_eq!(.program, "sudo", "unexpected program value")
+              assert!(exists(.pam_module), "pam_module missing")
+              assert_eq!(.pam_module, "pam_unix", "unexpected pam_module value")
+              assert!(exists(.pam_activity), "pam_activity missing")
+              assert_eq!(.pam_activity, "sudo:session", "unexpected pam_activity value")
+              assert!(exists(.session_user), "session_user missing")
+              assert_eq!(.session_user, "root", "unexpected session_user value")
+              assert!(exists(.event_type), "event_type missing")
+              assert_eq!(.event_type, "session closed", "unexpected event_type value")
+        

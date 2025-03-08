@@ -1,0 +1,38 @@
+tests:
+  - name: "Verify sudo session opened parsing"
+    inputs:
+      - insert_at: "parse_sudo_session"
+        type: "log"
+        log_fields:
+          message: "Feb 20 10:42:00 mihir-ubuntu sudo: pam_unix(sudo:session): session opened for user root(uid=0) by mihir(uid=1000)"
+
+    outputs:
+      - extract_from: "parse_sudo_session"
+        conditions:
+          - type: "vrl"
+            source: |
+              # Ensure expected fields exist and have correct values
+              assert!(exists(.timestamp), "timestamp missing")
+              assert_eq!(.timestamp, "Feb 20 10:42:00", "unexpected timestamp value")
+              assert!(exists(.hostname), "hostname missing")
+              assert_eq!(.hostname, "mihir-ubuntu", "unexpected hostname value")
+              assert!(exists(.program), "program missing")
+              assert_eq!(.program, "sudo", "unexpected program value")
+              assert!(exists(.appname), "appname missing")
+              assert_eq!(.appname, "sudo", "unexpected appname value")
+              assert!(exists(.pam_module), "pam_module missing")
+              assert_eq!(.pam_module, "pam_unix", "unexpected pam_module value")
+              assert!(exists(.pam_activity), "pam_activity missing")
+              assert_eq!(.pam_activity, "sudo:session", "unexpected pam_activity value")
+              assert!(exists(.target_user), "target_user missing")
+              assert_eq!(.target_user, "root", "unexpected target_user value")
+              assert!(exists(.username), "username missing")
+              assert_eq!(.username, "mihir", "unexpected username value")
+              assert!(exists(.target_uid), "target_uid missing")
+              assert_eq!(.target_uid, 0, "unexpected target_uid value")
+              assert!(exists(.actor_uid), "actor_uid missing")
+              assert_eq!(.actor_uid, 1000, "unexpected actor_uid value")
+              assert!(exists(.event_type), "event_type missing")
+              assert_eq!(.event_type, "session opened", "unexpected event_type value")
+
+          

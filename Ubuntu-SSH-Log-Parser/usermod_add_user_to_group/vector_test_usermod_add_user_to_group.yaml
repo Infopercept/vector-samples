@@ -1,0 +1,38 @@
+tests:
+  - name: "Verify usermod add user to group log processing"
+    inputs:
+      - insert_at: "parse_usermod"
+        type: "log"
+        log_fields:
+          message: "Feb 20 10:55:59 mihir-ubuntu usermod[15883]: add 'vector' to group 'adm'"
+
+      - insert_at: "parse_usermod"
+        type: "log"
+        log_fields:
+          message: "Feb 20 10:55:59 mihir-ubuntu usermod[15883]: add 'vector' to shadow group 'adm'"
+
+      - insert_at: "parse_usermod"
+        type: "log"
+        log_fields:
+          message: "Feb 20 10:55:59 mihir-ubuntu usermod[15891]: add 'vector' to group 'systemd-journal'"
+
+      - insert_at: "parse_usermod"
+        type: "log"
+        log_fields:
+          message: "Feb 20 10:55:59 mihir-ubuntu usermod[15891]: add 'vector' to shadow group 'systemd-journal'"
+
+    outputs:
+      - extract_from: "parse_usermod"
+        conditions:
+          - type: "vrl"
+            source: |
+              # Ensure all expected fields exist and match expected values
+              assert_eq!(.timestamp, "Feb 20 10:55:59", "unexpected timestamp value")
+              assert_eq!(.hostname, "mihir-ubuntu", "unexpected hostname value")
+              assert_eq!(.program, "usermod", "unexpected program value")
+              assert_eq!(.appname, "usermod_add", "unexpected appname value")
+              assert_eq!(.pid, 15883, "unexpected pid value")
+              assert_eq!(.entity, "vector", "unexpected entity value")
+              assert!(.group == "adm" || .group == "systemd-journal", "unexpected group value")
+              assert!(.group_type == "normal group" || .group_type == "shadow group", "unexpected group_type value")
+              assert_eq!(.event_type, "usermod add user to group", "unexpected event_type value")

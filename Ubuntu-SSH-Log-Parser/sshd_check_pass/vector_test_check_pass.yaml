@@ -1,0 +1,33 @@
+tests:
+  - name: "Verify pam_unix log processing"
+    inputs:
+      - insert_at: "parse_pam_unix"
+        type: "log"
+        log_fields:
+          message: "Feb 20 10:48:24 mihir-ubuntu sshd[15112]: pam_unix(sshd:auth): check pass; user unknown"
+
+    outputs:
+      - extract_from: "parse_pam_unix"
+        conditions:
+          - type: "vrl"
+            source: |
+              # Verify that all expected fields exist and contain the correct values.
+              assert!(exists(.timestamp), "timestamp missing")
+              assert_eq!(.timestamp, "Feb 20 10:48:24", "unexpected timestamp value")
+              assert!(exists(.hostname), "hostname missing")
+              assert_eq!(.hostname, "mihir-ubuntu", "unexpected hostname value")
+              assert!(exists(.program), "program missing")
+              assert_eq!(.program, "sshd", "unexpected program value")
+              assert!(exists(.appname), "appname missing")
+              assert_eq!(.appname, "sshd", "unexpected appname value")
+              assert!(exists(.pid), "pid missing")
+              assert_eq!(.pid, 15112, "unexpected pid value")
+              assert!(exists(.pam_module), "pam_module missing")
+              assert_eq!(.pam_module, "pam_unix", "unexpected pam_module value")
+              assert!(exists(.pam_activity), "pam_activity missing")
+              assert_eq!(.pam_activity, "sshd:auth", "unexpected pam_activity value")
+              assert!(exists(.reason), "reason missing")
+              assert_eq!(.reason, "check pass; user unknown", "unexpected reason value")
+              assert!(exists(.event_type), "event_type missing")
+              assert_eq!(.event_type, "pam unix check pass", "unexpected event_type value")
+

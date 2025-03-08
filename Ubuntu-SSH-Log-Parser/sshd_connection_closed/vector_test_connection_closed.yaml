@@ -1,0 +1,37 @@
+tests:
+  - name: "Verify SSH connection closed log processing"
+    inputs:
+      - insert_at: "parse_connection_closed"
+        type: "log"
+        log_fields:
+          message: "Mar  2 19:07:56 mihir-ubuntu sshd[54515]: Connection closed by authenticating user root 192.168.186.135 port 44825 [preauth]"
+
+    outputs:
+      - extract_from: "parse_connection_closed"
+        conditions:
+          - type: "vrl"
+            source: |
+              # Verify parsed log fields
+              assert!(exists(.timestamp), "timestamp missing")
+              assert_eq!(.timestamp, "Mar  2 19:07:56", "unexpected timestamp value")
+              assert!(exists(.hostname), "hostname missing")
+              assert_eq!(.hostname, "mihir-ubuntu", "unexpected hostname value")
+              assert!(exists(.program), "program missing")
+              assert_eq!(.program, "sshd", "unexpected program value")
+              assert!(exists(.appname), "appname missing")
+              assert_eq!(.appname, "sshd", "unexpected appname value")
+              assert!(exists(.pid), "pid missing")
+              assert_eq!(.pid, 54515, "unexpected pid value")
+              assert!(exists(.event_type), "event_type missing")
+              assert_eq!(.event_type, "connection closed", "unexpected event_type value")
+
+              assert!(exists(.user_type), "user_type missing")
+              assert_eq!(.user_type, "authenticating", "unexpected user_type value")
+              assert!(exists(.username), "username missing")
+              assert_eq!(.username, "root", "unexpected username value")
+              assert!(exists(.source_ip), "source_ip missing")
+              assert_eq!(.source_ip, "192.168.186.135", "unexpected source_ip value")
+              assert!(exists(.port), "port missing")
+              assert_eq!(.port, 44825, "unexpected port value")
+              assert!(exists(.status), "status missing")
+              assert_eq!(.status, "preauth", "unexpected status value")
