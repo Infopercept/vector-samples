@@ -1,0 +1,47 @@
+data_dir: "/var/lib/vector"
+
+sources:
+  auth_logs:
+    type: file
+    include:
+      - "auth.log"
+    ignore_checkpoints: true
+    read_from: beginning
+
+transforms:
+  parse_ssh_connection_drop:
+    type: remap
+    inputs:
+      - auth_logs
+    source: |
+      pattern = r'^(?P<timestamp>\w+\s+\d{1,2}\s+\d+:\d+:\d+)\s+(?P<hostname>\S+)\s+(?P<program>\S+)\[(?P<pid>\d+)\]:\s+(?P<action>drop connection)\s+#(?P<conn_id>\d+)\s+from\s+\[(?P<source_ip>[\d\.]+)\]:(?P<source_port>\d+)\s+on\s+\[(?P<dest_ip>[\d\.]+)\]:(?P<dest_port>\d+)\s+(?P<extra>.*)$'
+      parsed = parse_regex!(.message, pattern)
+      if parsed != null {
+        .timestamp = parsed.timestamp
+        .hostname = parsed.hostname
+        .program = parsed.program
+        .appname = parsed.program
+        .pid = to_int!(parsed.pid)
+        .connection_id = to_int!(parsed.conn_id)
+        .source_ip = parsed.source_ip
+        .source_port = to_int!(parsed.source_port)
+        .destination_ip = parsed.dest_ip
+        .destination_port = to_int!(parsed.dest_port)
+        .reason = parsed.extra
+        .event_type = "dropped connection"
+        . = compact(.)
+      } else {
+        log("Failed to parse SSH connection drop log", level: "error")
+        .raw_message = .message
+        .event_type = "unparsed_log"
+      }
+      del(.file)
+
+sinks:
+  parsed_ssh_connection_drop:
+    type: file
+    inputs:
+      - parse_ssh_connection_drop
+    path: "vector_parsed_ssh_connection_drop.json"
+    encoding:
+      codec: json
