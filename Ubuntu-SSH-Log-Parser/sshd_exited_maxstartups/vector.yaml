@@ -1,0 +1,43 @@
+data_dir: "/var/lib/vector"
+
+sources:
+  auth_logs:
+    type: file
+    include:
+      - "auth.log"
+    ignore_checkpoints: true
+    read_from: beginning
+
+transforms:
+  parse_maxstartups:
+    type: remap
+    inputs:
+      - auth_logs
+    source: |
+      pattern = r'^(?P<timestamp>\w+\s+\d{1,2}\s+\d+:\d+:\d+)\s+(?P<hostname>\S+)\s+(?P<program>\S+)\[(?P<pid>\d+)\]:\s+exited\s+MaxStartups\s+throttling\s+after\s+(?P<duration>\d{2}:\d{2}:\d{2}),\s+(?P<dropped>\d+)\s+connections\s+dropped$'
+      parsed = parse_regex!(.message, pattern)
+      if parsed != null {
+        .timestamp = parsed.timestamp
+        .hostname = parsed.hostname
+        .program = parsed.program
+        .appname = parsed.program
+        .pid = to_int!(parsed.pid)
+        .duration = parsed.duration
+        .dropped_connections = to_int!(parsed.dropped)
+        .event_type = "maxstartups_throttling_exited"
+        . = compact(.)
+      } else {
+        log("Failed to parse maxstartups log", level: "error")
+        .raw_message = .message
+        .event_type = "unparsed_log"
+      }
+      del(.file)
+
+sinks:
+  output:
+    type: file
+    inputs:
+      - parse_maxstartups
+    path: "vector_parsed_maxstartups.json"
+    encoding:
+      codec: json

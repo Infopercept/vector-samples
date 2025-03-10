@@ -1,0 +1,1 @@
+{"appname":"sshd","dropped_connections":31,"duration":"00:08:38","event_type":"maxstartups_throttling_exited","host":"localhost.localdomain","hostname":"mihir-ubuntu","message":"Mar  5 05:48:41 mihir-ubuntu sshd[1141]: exited MaxStartups throttling after 00:08:38, 31 connections dropped","pid":1141,"program":"sshd","source_type":"file","timestamp":"Mar  5 05:48:41"}
