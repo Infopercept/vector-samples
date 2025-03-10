@@ -1,0 +1,45 @@
+data_dir: "/var/lib/vector"
+
+sources:
+  auth_logs:
+    type: file
+    include:
+      - "auth.log"
+    ignore_checkpoints: true
+    read_from: beginning
+
+transforms:
+  parse_ssh_maxstartups:
+    type: remap
+    inputs:
+      - auth_logs
+    source: |
+      .full_log = .message
+      pattern = r'^(?P<timestamp>\w+\s+\d{1,2}\s+\d+:\d+:\d+)\s+(?P<hostname>\S+)\s+(?P<program>\S+)\[(?P<pid>\d+)\]:\s+(?P<log_level>\S+):\s+(?P<extracted_message>.*)$'
+      parsed = parse_regex!(.full_log, pattern)
+      if parsed != null {
+        .timestamp = parsed.timestamp
+        .hostname = parsed.hostname
+        .program = parsed.program
+        .appname = parsed.program
+        .pid = to_int!(parsed.pid)
+        .log_level = parsed.log_level
+        .event_type = "beginning maxStartups throttling"
+        .message = .full_log
+        . = compact(.)
+      } else {
+        log("Failed to parse maxstartups log", level: "error")
+        .raw_message = .full_log
+        .event_type = "unparsed_log"
+      }
+      del(.file)
+      del(.full_log)
+
+sinks:
+  parsed_ssh_maxstartups:
+    type: file
+    inputs:
+      - parse_ssh_maxstartups
+    path: "vector_parsed_ssh_maxstartups.json"
+    encoding:
+      codec: json
